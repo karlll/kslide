@@ -39,3 +39,7 @@ out/
 
 ### Kotlin ###
 .kotlin
+
+### Application files ###
+kslide.log
+slideshow.db

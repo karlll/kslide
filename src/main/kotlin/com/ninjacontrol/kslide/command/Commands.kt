@@ -5,7 +5,7 @@ import org.springframework.shell.command.annotation.Command
 import org.springframework.shell.command.annotation.Option
 import java.util.UUID
 
-@Command(command = ["new"], group = "Slideshow", description = "Create a new ...")
+@Command(command = ["new"], group = "New", description = "Create a new ...")
 class Commands(
     private val slideShowService: SlideShowService,
 ) {
