@@ -6,7 +6,7 @@ import org.springframework.shell.command.annotation.Option
 import java.util.UUID
 
 @Command(command = ["new"], group = "New", description = "Create a new ...")
-class Commands(
+class NewCommands(
     private val slideShowService: SlideShowService,
 ) {
     @Command(command = ["slideshow"], group = "New", description = "Create a new slideshow")
@@ -20,22 +20,24 @@ class Commands(
         @Option(required = false, description = "The UUID (string) of a slideshow. If omitted, the current loaded slideshow is assumed") id:
             String?,
     ) {
+        var num = -1
         if (id == null) {
             if (slideShowService.currentSlideShowId == null) {
                 println("No current slideshow")
                 return
             } else {
-                slideShowService.createSlide()
+                num = slideShowService.createSlide()
             }
         } else {
             try {
                 val slideShowId = UUID.fromString(id)
                 slideShowService.loadSlideShow(slideShowId)
-                slideShowService.createSlide()
+                num = slideShowService.createSlide()
             } catch (e: IllegalArgumentException) {
                 println("Invalid UUID format: $id")
                 return
             }
         }
+        println("Created new slide (#$num) in slideshow (${slideShowService.currentSlideShowId})")
     }
 }

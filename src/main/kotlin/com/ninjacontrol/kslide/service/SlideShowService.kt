@@ -20,13 +20,14 @@ class SlideShowService(
         return slideShow.id
     }
 
-    fun createSlide() {
+    fun createSlide(): Int {
         val id = currentSlideShowId ?: throw IllegalStateException("No current slideshow")
         val slideShow =
             slideShowRepository.get(id)
                 ?: throw IllegalArgumentException("Slide show with id $id not found")
-        newSlide(slideShow)
-        slideShowRepository.add(slideShow)
+        val updatedSlideShow = newSlide(slideShow)
+        slideShowRepository.add(updatedSlideShow)
+        return updatedSlideShow.slides.count
     }
 
     fun removeSlideShow(id: UUID) {
