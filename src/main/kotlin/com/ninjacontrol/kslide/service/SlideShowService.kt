@@ -78,9 +78,10 @@ interface SlideShowService {
     /**
      * Creates a new slide in the active slideshow and sets it as the active slide.
      *
+     * @param title The title of the new slide.
      * @return The slide number of the newly created slide.
      */
-    fun createSlide(): Int
+    fun createSlide(title: String?): Int
 
     /**
      * Creates a new text box in the active slide.
@@ -189,9 +190,10 @@ class SlideShowServiceImpl(
         return newState.id
     }
 
-    override fun createSlide(): Int {
+    override fun createSlide(title: String?): Int {
         val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
-        val newState = newSlide(state)
+        val newState = newSlide(state, title)
+
         activeSlideShowState = newState
         slideShowRepository.add(newState)
 

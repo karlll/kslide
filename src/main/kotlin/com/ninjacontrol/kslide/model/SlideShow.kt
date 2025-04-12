@@ -86,14 +86,16 @@ fun init(
         ),
 )
 
-fun newSlide(state: SlideShowState) =
-    state.copy(
-        slides =
-            state.slides.copy(
-                currentSlide = state.slides.ppt.createSlide(),
-                count = state.slides.count + 1,
-            ),
-    )
+fun newSlide(
+    state: SlideShowState,
+    title: String?,
+) = state.copy(
+    slides =
+        state.slides.copy(
+            currentSlide = state.slides.ppt.createSlide(),
+            count = state.slides.count + 1,
+        ),
+)
 
 fun removeSlide(
     state: SlideShowState,

@@ -15,7 +15,9 @@ class NewCommands(
     }
 
     @Command(command = ["slide"], group = "New", description = "Create a new slide in a slideshow")
-    fun newSlide() {
+    fun newSlide(
+        @Option(description = "title", required = false) title: String?,
+    ) {
         val slideShowId = slideShowService.getActiveSlideShowId()
         val slideShow = slideShowService.getSlideShowById(slideShowId)
         val newSlide = slideShow.createSlide()
