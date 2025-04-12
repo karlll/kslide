@@ -1,13 +1,11 @@
+@file:Suppress("ktlint:standard:no-wildcard-imports")
+
 package com.ninjacontrol.kslide.model
 
 import org.apache.poi.sl.draw.DrawPaint
 import org.apache.poi.sl.usermodel.AutoNumberingScheme
 import org.apache.poi.sl.usermodel.TextParagraph
-import org.apache.poi.xslf.usermodel.XMLSlideShow
-import org.apache.poi.xslf.usermodel.XSLFSlide
-import org.apache.poi.xslf.usermodel.XSLFTextBox
-import org.apache.poi.xslf.usermodel.XSLFTextParagraph
-import org.apache.poi.xslf.usermodel.XSLFTextRun
+import org.apache.poi.xslf.usermodel.*
 import java.awt.Rectangle
 import java.io.ByteArrayInputStream
 import java.time.Instant
@@ -96,6 +94,29 @@ fun newSlide(state: SlideShowState) =
                 count = state.slides.count + 1,
             ),
     )
+
+fun removeSlide(
+    state: SlideShowState,
+    slideNumber: Int,
+) = state.copy(
+    slides =
+        state.slides.copy(
+            ppt = state.slides.ppt.apply { removeSlide(slideNumber) },
+            currentSlide = if (state.slides.currentSlide?.slideNumber == slideNumber) null else state.slides.currentSlide,
+        ),
+)
+
+fun setCurrentSlide(
+    state: SlideShowState,
+    slideNumber: Int,
+) = state.copy(
+    slides =
+        state.slides.copy(
+            currentSlide =
+                state.slides.ppt.slides
+                    .find { it.slideNumber == slideNumber },
+        ),
+)
 
 fun newTextBox(
     state: SlideShowState,
