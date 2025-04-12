@@ -191,7 +191,7 @@ class SlideShowServiceTest {
         slideShowService.setActiveSlideShow(id)
 
         // Act
-        val slideNumber = slideShowService.createSlide()
+        val slideNumber = slideShowService.createSlide(null)
 
         // Assert
         assertNotNull(slideNumber)
