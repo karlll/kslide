@@ -135,20 +135,20 @@ class SlideShowServiceImpl(
     private var activeSlideShowState: SlideShowState? = null
 
     override fun getActiveSlideShow(): XMLSlideShow =
-        activeSlideShowState?.slides?.ppt ?: throw IllegalStateException("No active slideshow exists")
+        activeSlideShowState?.ppt ?: throw IllegalStateException("No active slideshow exists")
 
     override fun getActiveSlideShowId(): UUID = activeSlideShowState?.id ?: throw IllegalStateException("No active slideshow exists")
 
     override fun getSlideShowById(id: UUID): XMLSlideShow {
         // Check cache first
         if (activeSlideShowState?.id == id) {
-            return activeSlideShowState!!.slides.ppt
+            return activeSlideShowState!!.ppt
         }
 
         // If not in cache, get from repository
         val slideShowState = slideShowRepository.get(id) ?: throw IllegalArgumentException("SlideShow with id $id not found")
         activeSlideShowState = slideShowState // Update cache
-        return slideShowState.slides.ppt
+        return slideShowState.ppt
     }
 
     override fun setActiveSlideShow(id: UUID) {
@@ -164,27 +164,27 @@ class SlideShowServiceImpl(
 
     override fun getActiveSlide(): XSLFSlide {
         val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
-        return state.slides.currentSlide ?: throw IllegalStateException("No active slide")
+        return state.currentSlide ?: throw IllegalStateException("No active slide")
     }
 
     override fun setActiveSlide(slideNumber: Int) {
         val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
-        activeSlideShowState = setCurrentSlide(state, slideNumber)
+        state.setCurrentSlide(slideNumber)
     }
 
     override fun getAllSlides(): List<XSLFSlide> {
         val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
-        return state.slides.ppt.slides
+        return state.ppt.slides
     }
 
     override fun getActiveSlideNumber(): Int {
         val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
-        val currentSlide = state.slides.currentSlide ?: throw IllegalStateException("No active slide")
+        val currentSlide = state.currentSlide ?: throw IllegalStateException("No active slide")
         return currentSlide.slideNumber
     }
 
     override fun createSlideShow(): UUID {
-        val newState = new()
+        val newState = SlideShowState()
         activeSlideShowState = newState
         slideShowRepository.add(newState)
         return newState.id
@@ -192,13 +192,12 @@ class SlideShowServiceImpl(
 
     override fun createSlide(title: String?): Int {
         val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
-        val newState = newSlide(state, title)
+        val slideNumber = state.newSlide(title)
 
-        activeSlideShowState = newState
-        slideShowRepository.add(newState)
+        // Save the updated state
+        slideShowRepository.add(state)
 
-        return newState.slides.currentSlide?.slideNumber
-            ?: throw IllegalStateException("Failed to create new slide")
+        return slideNumber
     }
 
     override fun createTextBox(
@@ -208,9 +207,10 @@ class SlideShowServiceImpl(
         height: Int,
     ) {
         val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
-        val newState = newTextBox(state, x, y, width, height)
-        activeSlideShowState = newState
-        slideShowRepository.add(newState)
+        state.newTextBox(x, y, width, height)
+
+        // Save the updated state
+        slideShowRepository.add(state)
     }
 
     override fun removeSlideShow(id: UUID) {
@@ -224,9 +224,10 @@ class SlideShowServiceImpl(
 
     override fun removeSlide(number: Int) {
         val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
-        val newState = removeSlide(state, number)
-        activeSlideShowState = newState
-        slideShowRepository.add(newState)
+        state.removeSlide(number)
+
+        // Save the updated state
+        slideShowRepository.add(state)
     }
 
     override fun saveActiveSlideShow(): UUID {
@@ -238,7 +239,7 @@ class SlideShowServiceImpl(
     override fun exportActiveSlideShow(filename: String) {
         val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
         val fileOut = FileOutputStream(filename)
-        state.slides.ppt.write(fileOut)
+        state.ppt.write(fileOut)
         fileOut.close()
     }
 }

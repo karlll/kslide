@@ -262,25 +262,21 @@ class SlideShowServiceTest {
         id: UUID,
         withCurrentSlide: Boolean = false,
     ): SlideShowState {
-        val ppt = XMLSlideShow()
-        val slide = if (withCurrentSlide) ppt.createSlide() else null
-        return SlideShowState(
-            metadata =
-                SlideShowMetadata(
-                    id = id,
-                    filename = "test.pptx",
-                    title = "Test Slideshow",
-                    createdAt = java.time.Instant.now(),
-                    author = "Test Author",
-                ),
-            slides =
-                SlideState(
-                    ppt = ppt,
-                    currentSlide = slide,
-                    currentTextBox = null,
-                    currentTextParagraph = null,
-                    currentTextRun = null,
-                ),
-        )
+        // Create a new empty slide show
+        val slideShowState = SlideShowState()
+
+        // Set its properties
+        slideShowState.id = id
+        slideShowState.filename = "test.pptx"
+        slideShowState.title = "Test Slideshow"
+        slideShowState.createdAt = java.time.Instant.now()
+        slideShowState.author = "Test Author"
+
+        // Create a slide if needed
+        if (withCurrentSlide) {
+            slideShowState.currentSlide = slideShowState.ppt.createSlide()
+        }
+
+        return slideShowState
     }
 }

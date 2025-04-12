@@ -1,7 +1,6 @@
 package com.ninjacontrol.kslide.repository
 
 import com.ninjacontrol.kslide.model.SlideShowState
-import com.ninjacontrol.kslide.model.init
 import jakarta.annotation.PostConstruct
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Repository
@@ -43,15 +42,15 @@ class SlideShowRepositorySQLite(
             connection.prepareStatement(sql).use { statement ->
                 // Extract presentation as byte array
                 val baos = ByteArrayOutputStream()
-                slideShow.slides.ppt.write(baos)
+                slideShow.ppt.write(baos)
                 val slideData = baos.toByteArray()
 
                 // Store in database
                 statement.setString(1, slideShow.id.toString())
-                statement.setString(2, slideShow.metadata.filename)
-                statement.setString(3, slideShow.metadata.title)
-                statement.setLong(4, slideShow.metadata.createdAt.toEpochMilli())
-                statement.setString(5, slideShow.metadata.author)
+                statement.setString(2, slideShow.filename)
+                statement.setString(3, slideShow.title)
+                statement.setLong(4, slideShow.createdAt.toEpochMilli())
+                statement.setString(5, slideShow.author)
                 statement.setBytes(6, slideData)
 
                 statement.executeUpdate()
@@ -73,7 +72,7 @@ class SlideShowRepositorySQLite(
                     val author = resultSet.getString("author")
                     val slideData = resultSet.getBytes("slide_data")
 
-                    return init(
+                    return SlideShowState(
                         id = id,
                         filename = filename,
                         title = title,
