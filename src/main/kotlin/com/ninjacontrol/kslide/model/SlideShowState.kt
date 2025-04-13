@@ -4,6 +4,7 @@ package com.ninjacontrol.kslide.model
 
 import org.apache.poi.sl.draw.DrawPaint
 import org.apache.poi.sl.usermodel.AutoNumberingScheme
+import org.apache.poi.sl.usermodel.Placeholder
 import org.apache.poi.sl.usermodel.TextParagraph
 import org.apache.poi.xslf.usermodel.*
 import java.awt.Rectangle
@@ -64,10 +65,15 @@ class SlideShowState {
      * Creates a new slide.
      *
      * @param title Optional title for the slide
-     * @return The slide number of the newly created slide
+     * @return The number of the created slide
      */
     fun newSlide(title: String?): Int {
         currentSlide = ppt.createSlide()
+        if (!title.isNullOrEmpty() && currentSlide != null) {
+            val titleShape = currentSlide!!.createTextBox()
+            titleShape.placeholder = Placeholder.TITLE
+            titleShape.text = title
+        }
         count += 1
         return currentSlide?.slideNumber ?: throw IllegalStateException("Failed to create new slide")
     }
@@ -95,7 +101,7 @@ class SlideShowState {
      * @param slideNumber The number of the slide to set as current
      */
     fun setCurrentSlide(slideNumber: Int) {
-        currentSlide = ppt.slides.find { it.slideNumber == slideNumber }
+        currentSlide = ppt.slides.find { it.slideNumber == slideNumber } ?: throw IllegalArgumentException("Slide not found")
     }
 
     /**
@@ -105,16 +111,25 @@ class SlideShowState {
      * @param y Y coordinate
      * @param width Width of the text box
      * @param height Height of the text box
+     * @return The ID of the created text box, -1 if creation failed
      */
     fun newTextBox(
         x: Int,
         y: Int,
         width: Int,
         height: Int,
-    ) {
+    ): Int {
         currentTextBox = currentSlide?.createTextBox()
         currentTextBox?.setAnchor(Rectangle(x, y, width, height))
+        return currentTextBox?.shapeId ?: -1
     }
+
+    /**
+     * Gets text boxes in the current slide.
+     *
+     * @return List of text boxes in the current slide
+     */
+    fun getTextBoxes(): List<XSLFTextBox> = currentSlide?.shapes?.filterIsInstance<XSLFTextBox>() ?: emptyList()
 
     /**
      * Creates a new text paragraph in the current text box.

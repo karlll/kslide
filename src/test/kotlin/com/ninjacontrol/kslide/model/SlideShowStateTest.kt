@@ -80,6 +80,21 @@ class SlideShowStateTest {
     }
 
     @Test
+    fun `test set current slide with non-existent slide number throws exception`() {
+        // Arrange
+        val slideShow = SlideShowState()
+        slideShow.newSlide(null) // Create one slide
+
+        // Act & Assert
+        val nonExistentSlideNumber = 999 // A slide number that doesn't exist
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            slideShow.setCurrentSlide(nonExistentSlideNumber)
+        }
+
+        assertEquals("Slide not found", exception.message)
+    }
+
+    @Test
     fun `test create text box`() {
         // Arrange
         val slideShow = SlideShowState()

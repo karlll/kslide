@@ -4,7 +4,6 @@ package com.ninjacontrol.kslide.service
 
 import com.ninjacontrol.kslide.model.*
 import com.ninjacontrol.kslide.repository.SlideShowRepository
-import org.apache.poi.xslf.usermodel.XMLSlideShow
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -136,9 +135,10 @@ class SlideShowServiceTest {
         val slideShowState = createTestSlideShowState(id, withCurrentSlide = true)
         `when`(mockRepository.get(id)).thenReturn(slideShowState)
         slideShowService.setActiveSlideShow(id)
+        val activeSlideNumber = slideShowService.getActiveSlideNumber()
 
         // Act
-        slideShowService.setActiveSlide(0) // Assuming slide number 0 exists
+        slideShowService.setActiveSlide(activeSlideNumber) // Assuming slide number 0 exists
 
         // No exception means test passed
     }

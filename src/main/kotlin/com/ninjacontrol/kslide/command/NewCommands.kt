@@ -18,23 +18,23 @@ class NewCommands(
     fun newSlide(
         @Option(description = "title", required = false) title: String?,
     ) {
-        val slideShowId = slideShowService.getActiveSlideShowId()
-        val slideShow = slideShowService.getSlideShowById(slideShowId)
-        val newSlide = slideShow.createSlide()
-        slideShowService.setActiveSlide(newSlide.slideNumber)
-        println("Created new slide (#${newSlide.slideNumber}) in slideshow with id $slideShowId")
+        val slideNumber = slideShowService.createSlide(title)
+        println(
+            "Created new slide (id=$slideNumber) in slideshow with id ${slideShowService.getActiveSlideShowId()}. ",
+        )
     }
 
     @Command(command = ["textbox"], group = "New", description = "Create a new text box in a slide")
     fun newTextBox(
-        @Option(description = "x coordinate") x: Int,
-        @Option(description = "y coordinate") y: Int,
-        @Option(description = "width") width: Int,
-        @Option(description = "height") height: Int,
+        @Option(description = "x coordinate", required = true) x: Int,
+        @Option(description = "y coordinate", required = true) y: Int,
+        @Option(description = "width", required = true) width: Int,
+        @Option(description = "height", required = true) height: Int,
     ) {
         val slideShowId = slideShowService.getActiveSlideShowId()
         val currentSlide = slideShowService.getActiveSlide()
         val textBox = currentSlide.createTextBox()
+        slideShowService.createTextBox(x, y, width, height)
 
         println(
             "Created new text box (id=${textBox.shapeId},x=$x,y=$y,w=$width,h=$height) in slide (#${currentSlide.slideNumber}) of slideshow with id $slideShowId. ",

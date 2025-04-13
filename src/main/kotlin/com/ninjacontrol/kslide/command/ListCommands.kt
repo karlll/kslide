@@ -13,10 +13,16 @@ class ListCommands(
         if (slides.isEmpty()) {
             println("No slides found in the current slideshow.")
         } else {
+            val activeSlide = slideShowService.getActiveSlideNumber()
             println("Slides in the current slideshow:")
             slides.forEach { slide ->
-                println("${slide.slideNumber}: ${slide.title ?: "<untitled>"}")
+                val isActive = if (slide.slideNumber == activeSlide) "(active)" else ""
+                println("#${slide.slideNumber} - ${slide.title ?: "<untitled>"} $isActive")
             }
         }
+    }
+
+    @Command(command = ["textboxes"], group = "List", description = "List all textboxes in the current slide")
+    fun listTextBoxes() {
     }
 }

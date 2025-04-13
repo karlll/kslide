@@ -134,8 +134,7 @@ class SlideShowServiceImpl(
     // Cache for the active slideshow state
     private var activeSlideShowState: SlideShowState? = null
 
-    override fun getActiveSlideShow(): XMLSlideShow =
-        activeSlideShowState?.ppt ?: throw IllegalStateException("No active slideshow exists")
+    override fun getActiveSlideShow(): XMLSlideShow = activeSlideShowState?.ppt ?: throw IllegalStateException("No active slideshow exists")
 
     override fun getActiveSlideShowId(): UUID = activeSlideShowState?.id ?: throw IllegalStateException("No active slideshow exists")
 
