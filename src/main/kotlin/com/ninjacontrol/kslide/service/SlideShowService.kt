@@ -4,9 +4,13 @@ package com.ninjacontrol.kslide.service
 
 import com.ninjacontrol.kslide.model.*
 import com.ninjacontrol.kslide.repository.SlideShowRepository
+import com.ninjacontrol.kslide.util.RenderSlide
 import org.apache.poi.xslf.usermodel.XMLSlideShow
 import org.apache.poi.xslf.usermodel.XSLFSlide
+import org.apache.poi.xslf.usermodel.XSLFSlideLayout
+import org.apache.poi.xslf.usermodel.XSLFTextBox
 import org.springframework.stereotype.Service
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.util.UUID
 
@@ -76,12 +80,32 @@ interface SlideShowService {
     fun createSlideShow(): UUID
 
     /**
+     * Deletes the current slideshow from the repository.
+     *
+     */
+    fun deleteSlideShow()
+
+    /**
+     * Creates a new empty slideshow using the master layout defined in the provided template file.
+     * Sets the new slideshow to active slideshow.
+     *
+     * @param template The path to the template file.
+     * @return The UUID of the newly created slideshow.
+     */
+    fun createSlideShow(template: String): UUID
+
+    /**
      * Creates a new slide in the active slideshow and sets it as the active slide.
      *
      * @param title The title of the new slide.
      * @return The slide number of the newly created slide.
      */
     fun createSlide(title: String?): Int
+
+    /**
+     * Deletes the specified slide from the active slideshow.
+     */
+    fun deleteSlide(slideNumber: Int)
 
     /**
      * Creates a new text box in the active slide.
@@ -97,6 +121,19 @@ interface SlideShowService {
         width: Int,
         height: Int,
     )
+
+    fun createParagraph(text: String?)
+
+    fun addTextRun(text: String)
+
+    fun addBullet(
+        level: Int,
+        text: String,
+    )
+
+    fun getActiveTextBox(): XSLFTextBox
+
+    fun setActiveTextBox(id: Int)
 
     /**
      * Removes the specified slideshow from the repository.
@@ -120,11 +157,48 @@ interface SlideShowService {
     fun saveActiveSlideShow(): UUID
 
     /**
+     * Sets the active directory reading and writing files.
+     *
+     * @param directory The directory to set as active.
+     */
+    fun setActiveDirectory(directory: String)
+
+    /**
+     * Gets the active directory for reading and writing files.
+     */
+    fun getActiveDirectory(): String?
+
+    /**
      * Exports the active slideshow to a file with the specified filename.
      *
      * @param filename The name of the file to export the slideshow to.
      */
     fun exportActiveSlideShow(filename: String)
+
+    /**
+     * Retrieves a list of available slide layouts.
+     *
+     * @return A list of XSLFSlideLayout objects representing the available layouts.
+     */
+    fun getAvailableLayouts(): List<Pair<Int, XSLFSlideLayout>>
+
+    /**
+     * Sets the active layout for the current slide.
+     *
+     * @param layout The XSLFSlideLayout object to set as active.
+     */
+    fun setActiveLayout(layout: XSLFSlideLayout)
+
+    fun deleteActiveTextBox()
+
+    fun deleteTextBox(id: Int)
+
+    fun deleteActiveParagraph()
+
+    fun renderSlideToImage(
+        slideNumber: Int,
+        outputFile: java.io.File,
+    )
 }
 
 @Service
@@ -133,6 +207,7 @@ class SlideShowServiceImpl(
 ) : SlideShowService {
     // Cache for the active slideshow state
     private var activeSlideShowState: SlideShowState? = null
+    private var activeDirectory: String? = null
 
     override fun getActiveSlideShow(): XMLSlideShow = activeSlideShowState?.ppt ?: throw IllegalStateException("No active slideshow exists")
 
@@ -161,6 +236,24 @@ class SlideShowServiceImpl(
         activeSlideShowState = slideShowState
     }
 
+    override fun getAvailableLayouts(): List<Pair<Int, XSLFSlideLayout>> {
+        val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
+        val allLayouts = mutableListOf<Pair<Int, XSLFSlideLayout>>()
+
+        state.ppt.slideMasters.forEachIndexed { idx, master ->
+            master.slideLayouts.forEach { layout ->
+                allLayouts.add(idx to layout)
+            }
+        }
+
+        return allLayouts
+    }
+
+    override fun setActiveLayout(layout: XSLFSlideLayout) {
+        val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
+        state.currentLayout = layout
+    }
+
     override fun getActiveSlide(): XSLFSlide {
         val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
         return state.currentSlide ?: throw IllegalStateException("No active slide")
@@ -183,10 +276,23 @@ class SlideShowServiceImpl(
     }
 
     override fun createSlideShow(): UUID {
-        val newState = SlideShowState()
+        val newState = SlideShowState(filename = null, input = null)
         activeSlideShowState = newState
         slideShowRepository.add(newState)
         return newState.id
+    }
+
+    override fun createSlideShow(template: String): UUID {
+        val newState = SlideShowState(filename = template, input = FileInputStream(template))
+        activeSlideShowState = newState
+        slideShowRepository.add(newState)
+        return newState.id
+    }
+
+    override fun deleteSlideShow() {
+        val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
+        slideShowRepository.remove(state.id)
+        activeSlideShowState = null
     }
 
     override fun createSlide(title: String?): Int {
@@ -197,6 +303,14 @@ class SlideShowServiceImpl(
         slideShowRepository.add(state)
 
         return slideNumber
+    }
+
+    override fun deleteSlide(slideNumber: Int) {
+        val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
+        state.removeSlide(slideNumber)
+
+        // Save the updated state
+        slideShowRepository.add(state)
     }
 
     override fun createTextBox(
@@ -210,6 +324,64 @@ class SlideShowServiceImpl(
 
         // Save the updated state
         slideShowRepository.add(state)
+    }
+
+    override fun deleteTextBox(id: Int) {
+        val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
+        state.deleteTextBox(id)
+
+        // Save the updated state
+        slideShowRepository.add(state)
+    }
+
+    override fun deleteActiveTextBox() {
+        val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
+        state.deleteTextBox(getActiveTextBox().shapeId)
+
+        // Save the updated state
+        slideShowRepository.add(state)
+    }
+
+    override fun setActiveTextBox(id: Int) {
+        val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
+        state.setCurrentTextBox(id)
+    }
+
+    override fun createParagraph(text: String?) {
+        val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
+        state.newTextParagraph()
+        if (!text.isNullOrBlank()) {
+            state.newTextRun(text)
+        }
+    }
+
+    override fun deleteActiveParagraph() {
+        val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
+        state.deleteCurrentTextParagraph()
+
+        // Save the updated state
+        slideShowRepository.add(state)
+    }
+
+    override fun addTextRun(text: String) {
+        val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
+        state.newTextRun(text)
+    }
+
+    override fun addBullet(
+        level: Int,
+        text: String,
+    ) {
+        val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
+        state.newTextParagraph()
+        state.newTextRun(text)
+        state.setBullet(true)
+        state.setIndentLevel(level)
+    }
+
+    override fun getActiveTextBox(): XSLFTextBox {
+        val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
+        return state.currentTextBox as? XSLFTextBox ?: throw IllegalStateException("No active text box")
     }
 
     override fun removeSlideShow(id: UUID) {
@@ -240,5 +412,19 @@ class SlideShowServiceImpl(
         val fileOut = FileOutputStream(filename)
         state.ppt.write(fileOut)
         fileOut.close()
+    }
+
+    override fun setActiveDirectory(directory: String) {
+        activeDirectory = directory
+    }
+
+    override fun getActiveDirectory(): String? = activeDirectory
+
+    override fun renderSlideToImage(
+        slideNumber: Int,
+        outputFile: java.io.File,
+    ) {
+        val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
+        RenderSlide.renderSlideToPNG(state.ppt, slideNumber, outputFile)
     }
 }

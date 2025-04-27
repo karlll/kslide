@@ -9,8 +9,9 @@ import org.apache.poi.sl.usermodel.TextParagraph
 import org.apache.poi.xslf.usermodel.*
 import java.awt.Rectangle
 import java.io.ByteArrayInputStream
+import java.io.FileInputStream
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 /**
  * A mutable implementation of SlideShow functionality.
@@ -25,21 +26,28 @@ class SlideShowState {
     var author: String?
     var ppt: XMLSlideShow
     var currentSlide: XSLFSlide? = null
-    var currentTextBox: XSLFTextBox? = null
+    var currentTextBox: XSLFTextShape? = null
     var currentTextParagraph: XSLFTextParagraph? = null
     var currentTextRun: XSLFTextRun? = null
+    var currentLayout: XSLFSlideLayout? = null
     var count: Int = 0
 
     /**
      * Creates a new empty slide show.
+     * @param input Optional input stream to load an existing slide show
      */
-    constructor() {
+    constructor(filename: String?, input: FileInputStream?) {
         id = UUID.randomUUID()
-        filename = null
+        this.filename = filename
         title = null
         createdAt = Instant.now()
         author = null
-        ppt = XMLSlideShow()
+        ppt =
+            if (input != null) {
+                XMLSlideShow(input)
+            } else {
+                XMLSlideShow()
+            }
     }
 
     /**
@@ -68,12 +76,23 @@ class SlideShowState {
      * @return The number of the created slide
      */
     fun newSlide(title: String?): Int {
-        currentSlide = ppt.createSlide()
+        currentSlide =
+            if (currentLayout == null) {
+                ppt.createSlide()
+            } else {
+                ppt.createSlide(currentLayout)
+            }
+
         if (!title.isNullOrEmpty() && currentSlide != null) {
-            val titleShape = currentSlide!!.createTextBox()
-            titleShape.placeholder = Placeholder.TITLE
-            titleShape.text = title
+            for (placeholder in currentSlide!!.placeholders) {
+                if (placeholder is XSLFTextShape) {
+                    if (placeholder.placeholder == Placeholder.TITLE) {
+                        placeholder.text = title
+                    }
+                }
+            }
         }
+
         count += 1
         return currentSlide?.slideNumber ?: throw IllegalStateException("Failed to create new slide")
     }
@@ -84,10 +103,10 @@ class SlideShowState {
      * @param slideNumber The number of the slide to remove
      */
     fun removeSlide(slideNumber: Int) {
-        // Store the slide to be removed before removing it
-        val slideToRemove = if (ppt.slides.size > slideNumber) ppt.slides[slideNumber] else null
+        val slideToRemove = ppt.slides.find { it.slideNumber == slideNumber }
+        val slideIndex = ppt.slides.indexOf(slideToRemove)
 
-        ppt.removeSlide(slideNumber)
+        ppt.removeSlide(slideIndex)
 
         // If the current slide was the one removed, set it to null
         if (currentSlide == slideToRemove) {
@@ -131,11 +150,37 @@ class SlideShowState {
      */
     fun getTextBoxes(): List<XSLFTextBox> = currentSlide?.shapes?.filterIsInstance<XSLFTextBox>() ?: emptyList()
 
+    fun getCurrentTextBox(): XSLFTextBox? = currentTextBox as? XSLFTextBox
+
+    fun setCurrentTextBox(id: Int) {
+        currentTextBox = currentSlide?.placeholders?.find { it.shapeId == id }
+        if (currentTextBox == null) {
+            throw IllegalArgumentException("Text box with ID $id not found")
+        }
+    }
+
+    fun deleteTextBox(id: Int) {
+        val textBoxToDelete = currentSlide?.placeholders?.find { it.shapeId == id }
+        if (textBoxToDelete != null) {
+            if (currentTextBox == textBoxToDelete) {
+                currentTextBox = null
+            }
+            currentSlide?.removeShape(textBoxToDelete)
+        } else {
+            throw IllegalArgumentException("Text box with ID $id not found")
+        }
+    }
+
     /**
      * Creates a new text paragraph in the current text box.
      */
     fun newTextParagraph() {
         currentTextParagraph = currentTextBox?.addNewTextParagraph()
+    }
+
+    fun deleteCurrentTextParagraph() {
+        currentTextBox?.removeTextParagraph(currentTextParagraph)
+        currentTextParagraph = null
     }
 
     /**
