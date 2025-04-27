@@ -14,276 +14,459 @@ import java.time.Instant
 import java.util.*
 
 /**
- * Represents the state of a slideshow, including its content and metadata.
+ * A mutable implementation of SlideShow functionality.
+ * This class replaces the functional approach with a mutable class-based approach.
  */
-class SlideShowState(
-    val id: UUID = UUID.randomUUID(),
-    var filename: String? = null,
-    var title: String? = null,
-    val createdAt: Instant = Instant.now(),
-    var author: String? = null,
-    slideShowBytes: ByteArray? = null,
-) {
-    // The PowerPoint presentation
-    val ppt: XMLSlideShow = if (slideShowBytes != null) {
-        XMLSlideShow(ByteArrayInputStream(slideShowBytes))
-    } else {
-        XMLSlideShow()
-    }
-
-    // Current active slide
-    var currentSlideIndex: Int = 0
-        private set
-
-    // Current active text box
-    var currentTextBox: XSLFShape? = null
-        private set
-
-    // Current active paragraph
-    var currentParagraph: XSLFTextParagraph? = null
-        private set
+class SlideShowState {
+    // Internal mutable state
+    var id: UUID
+    var filename: String?
+    var title: String?
+    var createdAt: Instant
+    var author: String?
+    var ppt: XMLSlideShow
+    var currentSlide: XSLFSlide? = null
+    var currentTextBox: XSLFTextShape? = null
+    var currentTextParagraph: XSLFTextParagraph? = null
+    var currentTextRun: XSLFTextRun? = null
+    var currentLayout: XSLFSlideLayout? = null
+    var count: Int = 0
 
     /**
-     * Creates a new slideshow from a template file.
-     *
-     * @param templatePath The path to the template file.
-     * @return A new SlideShowState instance.
+     * Creates a new empty slide show.
+     * @param input Optional input stream to load an existing slide show
      */
-    constructor(templatePath: String) : this() {
-        val fileIn = FileInputStream(templatePath)
-        val templatePpt = XMLSlideShow(fileIn)
-        fileIn.close()
-
-        // Copy master slides from template
-        // Note: In newer versions of Apache POI, the importMaster method may have changed
-        // For now, we'll just use the template's masters without importing them
-        // This is a simplified version for demonstration purposes
+    constructor(filename: String?, input: FileInputStream?) {
+        id = UUID.randomUUID()
+        this.filename = filename
+        title = null
+        createdAt = Instant.now()
+        author = null
+        ppt =
+            if (input != null) {
+                XMLSlideShow(input)
+            } else {
+                XMLSlideShow()
+            }
     }
 
     /**
-     * Gets the current active slide.
-     *
-     * @return The active XSLFSlide.
-     * @throws IllegalStateException if there are no slides.
+     * Creates a slide show from existing data.
      */
-    fun getCurrentSlide(): XSLFSlide {
-        if (ppt.slides.isEmpty()) {
-            throw IllegalStateException("No slides in presentation")
-        }
-        return ppt.slides[currentSlideIndex]
+    constructor(
+        id: UUID,
+        filename: String?,
+        title: String?,
+        createdAt: Instant,
+        author: String?,
+        slideShowBytes: ByteArray,
+    ) {
+        this.id = id
+        this.filename = filename
+        this.title = title
+        this.createdAt = createdAt
+        this.author = author
+        this.ppt = XMLSlideShow(ByteArrayInputStream(slideShowBytes))
     }
 
     /**
-     * Sets the active slide by index.
+     * Creates a new slide.
      *
-     * @param index The index of the slide to set as active.
-     * @throws IndexOutOfBoundsException if the index is invalid.
+     * @param title Optional title for the slide
+     * @return The number of the created slide
      */
-    fun setCurrentSlide(index: Int) {
-        if (index < 0 || index >= ppt.slides.size) {
-            throw IndexOutOfBoundsException("Invalid slide index: $index")
-        }
-        currentSlideIndex = index
-    }
+    fun newSlide(title: String?): Int {
+        currentSlide =
+            if (currentLayout == null) {
+                ppt.createSlide()
+            } else {
+                ppt.createSlide(currentLayout)
+            }
 
-    /**
-     * Creates a new slide and sets it as the active slide.
-     *
-     * @param title The title of the new slide.
-     * @return The index of the newly created slide.
-     */
-    fun createSlide(title: String?): Int {
-        // Note: In newer versions of Apache POI, the API for finding layouts and setting text may have changed
-        // This is a simplified version for demonstration purposes
-        val slide = ppt.createSlide()
-
-        // Set the title if provided
-        // In a real implementation, we would find the title placeholder and set its text
-        // For now, we'll just create a slide without setting the title
-
-        currentSlideIndex = ppt.slides.size - 1
-        return currentSlideIndex
-    }
-
-    /**
-     * Removes a slide by index.
-     *
-     * @param index The index of the slide to remove.
-     * @throws IndexOutOfBoundsException if the index is invalid.
-     */
-    fun removeSlide(index: Int) {
-        if (index < 0 || index >= ppt.slides.size) {
-            throw IndexOutOfBoundsException("Invalid slide index: $index")
+        if (!title.isNullOrEmpty() && currentSlide != null) {
+            for (placeholder in currentSlide!!.placeholders) {
+                if (placeholder is XSLFTextShape) {
+                    if (placeholder.placeholder == Placeholder.TITLE) {
+                        placeholder.text = title
+                    }
+                }
+            }
         }
 
-        ppt.removeSlide(index)
+        count += 1
+        return currentSlide?.slideNumber ?: throw IllegalStateException("Failed to create new slide")
+    }
 
-        // Adjust current slide index if necessary
-        if (currentSlideIndex >= ppt.slides.size) {
-            currentSlideIndex = maxOf(0, ppt.slides.size - 1)
+    /**
+     * Removes a slide by its number.
+     *
+     * @param slideNumber The number of the slide to remove
+     */
+    fun removeSlide(slideNumber: Int) {
+        val slideToRemove = ppt.slides.find { it.slideNumber == slideNumber }
+        val slideIndex = ppt.slides.indexOf(slideToRemove)
+
+        ppt.removeSlide(slideIndex)
+
+        // If the current slide was the one removed, set it to null
+        if (currentSlide == slideToRemove) {
+            currentSlide = null
         }
     }
 
     /**
-     * Creates a new text box in the current slide.
+     * Sets the current slide by its number.
      *
-     * @param x The x-coordinate of the text box.
-     * @param y The y-coordinate of the text box.
-     * @param width The width of the text box.
-     * @param height The height of the text box.
-     * @return The created XSLFTextBox.
+     * @param slideNumber The number of the slide to set as current
      */
-    fun createTextBox(
+    fun setCurrentSlide(slideNumber: Int) {
+        currentSlide = ppt.slides.find { it.slideNumber == slideNumber } ?: throw IllegalArgumentException("Slide not found")
+    }
+
+    /**
+     * Creates a new text box on the current slide.
+     *
+     * @param x X coordinate
+     * @param y Y coordinate
+     * @param width Width of the text box
+     * @param height Height of the text box
+     * @return The ID of the created text box, -1 if creation failed
+     */
+    fun newTextBox(
         x: Int,
         y: Int,
         width: Int,
         height: Int,
-    ): XSLFTextBox {
-        val slide = getCurrentSlide()
-        val textBox = slide.createTextBox()
-        textBox.anchor = Rectangle(x, y, width, height)
-        currentTextBox = textBox
-        currentParagraph = textBox.addNewTextParagraph()
-        return textBox
+    ): Int {
+        currentTextBox = currentSlide?.createTextBox()
+        currentTextBox?.setAnchor(Rectangle(x, y, width, height))
+        return currentTextBox?.shapeId ?: -1
     }
 
     /**
-     * Sets the active text box by ID.
+     * Gets text boxes in the current slide.
      *
-     * @param id The ID of the text box to set as active.
-     * @throws IllegalArgumentException if no text box with the given ID is found.
+     * @return List of text boxes in the current slide
      */
+    fun getTextBoxes(): List<XSLFTextBox> = currentSlide?.shapes?.filterIsInstance<XSLFTextBox>() ?: emptyList()
+
+    fun getCurrentTextBox(): XSLFTextBox? = currentTextBox as? XSLFTextBox
+
     fun setCurrentTextBox(id: Int) {
-        val slide = getCurrentSlide()
-        val textBox = slide.shapes.find { it.shapeId == id } as? XSLFTextShape
-            ?: throw IllegalArgumentException("No text box with ID $id found")
+        currentTextBox = currentSlide?.placeholders?.find { it.shapeId == id }
+        if (currentTextBox == null) {
+            throw IllegalArgumentException("Text box with ID $id not found")
+        }
+    }
 
-        currentTextBox = textBox
-        if (textBox.textParagraphs.isNotEmpty()) {
-            currentParagraph = textBox.textParagraphs[0]
+    fun deleteTextBox(id: Int) {
+        val textBoxToDelete = currentSlide?.placeholders?.find { it.shapeId == id }
+        if (textBoxToDelete != null) {
+            if (currentTextBox == textBoxToDelete) {
+                currentTextBox = null
+            }
+            currentSlide?.removeShape(textBoxToDelete)
+        } else {
+            throw IllegalArgumentException("Text box with ID $id not found")
         }
     }
 
     /**
-     * Creates a new paragraph in the current text box.
-     *
-     * @param text The text for the new paragraph.
-     * @return The created XSLFTextParagraph.
-     * @throws IllegalStateException if no text box is active.
+     * Creates a new text paragraph in the current text box.
      */
-    fun newTextParagraph(text: String? = null): XSLFTextParagraph {
-        val textBox = currentTextBox as? XSLFTextShape
-            ?: throw IllegalStateException("No active text box")
+    fun newTextParagraph() {
+        currentTextParagraph = currentTextBox?.addNewTextParagraph()
+    }
 
-        val paragraph = textBox.addNewTextParagraph()
-        currentParagraph = paragraph
-
-        if (text != null) {
-            // Note: In newer versions of Apache POI, the API for setting text may have changed
-            // This is a simplified version for demonstration purposes
-            val run = paragraph.addNewTextRun()
-            // In a real implementation, we would set the text property
-            // run.text = text
-        }
-
-        return paragraph
+    fun deleteCurrentTextParagraph() {
+        currentTextBox?.removeTextParagraph(currentTextParagraph)
+        currentTextParagraph = null
     }
 
     /**
-     * Adds a new text run to the current paragraph.
+     * Creates a new text run in the current paragraph.
      *
-     * @param text The text for the new run.
-     * @return The created XSLFTextRun.
-     * @throws IllegalStateException if no paragraph is active.
+     * @param text The text to add
      */
-    fun newTextRun(text: String): XSLFTextRun {
-        val paragraph = currentParagraph
-            ?: throw IllegalStateException("No active paragraph")
-
-        val run = paragraph.addNewTextRun()
-        // Note: In newer versions of Apache POI, the API for setting text may have changed
-        // This is a simplified version for demonstration purposes
-        // In a real implementation, we would set the text property
-        // run.text = text
-        return run
+    fun newTextRun(text: String) {
+        currentTextRun = currentTextParagraph?.addNewTextRun()
+        currentTextRun?.setText(text)
     }
 
     /**
-     * Sets whether the current paragraph has bullets.
+     * Creates a new hyperlink in the current paragraph.
      *
-     * @param hasBullet Whether the paragraph should have bullets.
+     * @param text The text to display
+     * @param url The URL to link to
      */
-    fun setBullet(hasBullet: Boolean) {
-        val paragraph = currentParagraph
-            ?: throw IllegalStateException("No active paragraph")
+    fun newHyperlink(
+        text: String,
+        url: String,
+    ) {
+        currentTextRun = currentTextParagraph?.addNewTextRun()
+        currentTextRun?.setText(text)
+        val link = currentTextRun?.createHyperlink()
+        link?.address = url
+    }
 
-        paragraph.isBullet = hasBullet
+    // Paragraph layout methods
+
+    /**
+     * Sets the indent for the current paragraph.
+     *
+     * @param indent The indent value
+     */
+    fun setIndent(indent: Double) {
+        currentTextParagraph?.setIndent(indent)
     }
 
     /**
-     * Sets the indent level of the current paragraph.
+     * Sets the indent level for the current paragraph.
      *
-     * @param level The indent level.
+     * @param level The indent level
      */
     fun setIndentLevel(level: Int) {
-        val paragraph = currentParagraph
-            ?: throw IllegalStateException("No active paragraph")
-
-        paragraph.indentLevel = level
+        currentTextParagraph?.indentLevel = level
     }
 
     /**
-     * Deletes the current text box.
-     *
-     * @throws IllegalStateException if no text box is active.
+     * Adds a line break to the current paragraph.
      */
-    fun deleteCurrentTextBox() {
-        val textBox = currentTextBox
-            ?: throw IllegalStateException("No active text box")
-
-        val slide = getCurrentSlide()
-        slide.removeShape(textBox)
-        currentTextBox = null
-        currentParagraph = null
+    fun addLinebreak() {
+        currentTextParagraph?.addLineBreak()
     }
 
     /**
-     * Deletes a text box by ID.
+     * Sets the text alignment for the current paragraph.
      *
-     * @param id The ID of the text box to delete.
-     * @throws IllegalArgumentException if no text box with the given ID is found.
+     * @param alignment The alignment ("left", "center", "right", "justify", "distribute")
      */
-    fun deleteTextBox(id: Int) {
-        val slide = getCurrentSlide()
-        val textBox = slide.shapes.find { it.shapeId == id }
-            ?: throw IllegalArgumentException("No text box with ID $id found")
-
-        slide.removeShape(textBox)
-
-        // Reset current text box if it was deleted
-        if (currentTextBox?.shapeId == id) {
-            currentTextBox = null
-            currentParagraph = null
-        }
+    fun setTextAlignment(alignment: String) {
+        currentTextParagraph?.textAlign =
+            when (alignment) {
+                "left" -> TextParagraph.TextAlign.LEFT
+                "center" -> TextParagraph.TextAlign.CENTER
+                "right" -> TextParagraph.TextAlign.RIGHT
+                "justify" -> TextParagraph.TextAlign.JUSTIFY
+                "distribute" -> TextParagraph.TextAlign.DIST
+                else -> TextParagraph.TextAlign.LEFT
+            }
     }
 
     /**
-     * Deletes the current paragraph.
+     * Sets the font alignment for the current paragraph.
      *
-     * @throws IllegalStateException if no paragraph is active.
+     * @param alignment The alignment ("auto", "baseline", "center", "top", "bottom")
      */
-    fun deleteCurrentParagraph() {
-        val paragraph = currentParagraph
-            ?: throw IllegalStateException("No active paragraph")
+    fun setFontAlignment(alignment: String) {
+        currentTextParagraph?.fontAlign =
+            when (alignment) {
+                "auto" -> TextParagraph.FontAlign.AUTO
+                "baseline" -> TextParagraph.FontAlign.BASELINE
+                "center" -> TextParagraph.FontAlign.CENTER
+                "top" -> TextParagraph.FontAlign.TOP
+                "bottom" -> TextParagraph.FontAlign.BOTTOM
+                else -> TextParagraph.FontAlign.AUTO
+            }
+    }
 
-        val textBox = currentTextBox as? XSLFTextShape
-            ?: throw IllegalStateException("No active text box")
+    /**
+     * Sets whether the current paragraph has a bullet.
+     *
+     * @param bullet Whether to show a bullet
+     */
+    fun setBullet(bullet: Boolean) {
+        currentTextParagraph?.isBullet = bullet
+    }
 
-        textBox.textParagraphs.remove(paragraph)
-        if (textBox.textParagraphs.isNotEmpty()) {
-            currentParagraph = textBox.textParagraphs[0]
-        } else {
-            currentParagraph = null
-        }
+    /**
+     * Sets the bullet font for the current paragraph.
+     *
+     * @param fontName The font name
+     */
+    fun setBulletFont(fontName: String) {
+        currentTextParagraph?.bulletFont = fontName
+    }
+
+    /**
+     * Sets the bullet color for the current paragraph.
+     *
+     * @param color The color in hex format (e.g., "#FF0000")
+     */
+    fun setBulletColor(color: String) {
+        currentTextParagraph?.bulletFontColor = DrawPaint.createSolidPaint(java.awt.Color.decode(color))
+    }
+
+    /**
+     * Sets the bullet size for the current paragraph.
+     *
+     * @param size The size
+     */
+    fun setBulletSize(size: Double) {
+        currentTextParagraph?.bulletFontSize = size
+    }
+
+    /**
+     * Sets the bullet character for the current paragraph.
+     *
+     * @param bulletChar The bullet character
+     */
+    fun setBulletCharacter(bulletChar: String) {
+        currentTextParagraph?.bulletCharacter = bulletChar
+    }
+
+    /**
+     * Sets bullet numbering for the current paragraph.
+     *
+     * @param start The starting number
+     */
+    fun setBulletNumbering(start: Int) {
+        currentTextParagraph?.setBulletAutoNumber(AutoNumberingScheme.arabicPeriod, start)
+    }
+
+    /**
+     * Sets the left margin for the current paragraph.
+     *
+     * @param leftMargin The left margin
+     */
+    fun setLeftMargin(leftMargin: Double) {
+        currentTextParagraph?.leftMargin = leftMargin
+    }
+
+    /**
+     * Sets the right margin for the current paragraph.
+     *
+     * @param rightMargin The right margin
+     */
+    fun setRightMargin(rightMargin: Double) {
+        currentTextParagraph?.rightMargin = rightMargin
+    }
+
+    /**
+     * Sets the line spacing for the current paragraph.
+     *
+     * @param lineSpacing The line spacing
+     */
+    fun setLineSpacing(lineSpacing: Double) {
+        currentTextParagraph?.lineSpacing = lineSpacing
+    }
+
+    /**
+     * Sets the spacing before the current paragraph.
+     *
+     * @param spacingBefore The spacing before
+     */
+    fun setSpacingBefore(spacingBefore: Double) {
+        currentTextParagraph?.spaceBefore = spacingBefore
+    }
+
+    /**
+     * Sets the spacing after the current paragraph.
+     *
+     * @param spacingAfter The spacing after
+     */
+    fun setSpacingAfter(spacingAfter: Double) {
+        currentTextParagraph?.spaceAfter = spacingAfter
+    }
+
+    // Text formatting methods
+
+    /**
+     * Sets the font family for the current text run.
+     *
+     * @param fontFamily The font family
+     */
+    fun setFontFamily(fontFamily: String) {
+        currentTextRun?.setFontFamily(fontFamily)
+    }
+
+    /**
+     * Sets the font size for the current text run.
+     *
+     * @param fontSize The font size
+     */
+    fun setFontSize(fontSize: Double) {
+        currentTextRun?.fontSize = fontSize
+    }
+
+    /**
+     * Sets the font color for the current text run.
+     *
+     * @param color The color in hex format (e.g., "#FF0000")
+     */
+    fun setFontColor(color: String) {
+        currentTextRun?.setFontColor(java.awt.Color.decode(color))
+    }
+
+    /**
+     * Sets the font background color for the current text run.
+     *
+     * @param color The color in hex format (e.g., "#FF0000")
+     */
+    fun setFontBackgroundColor(color: String) {
+        currentTextRun?.setHighlightColor(java.awt.Color.decode(color))
+    }
+
+    /**
+     * Sets the character spacing for the current text run.
+     *
+     * @param spacing The character spacing
+     */
+    fun setCharacterSpacing(spacing: Double) {
+        currentTextRun?.setCharacterSpacing(spacing)
+    }
+
+    /**
+     * Sets whether the current text run has strikethrough.
+     *
+     * @param strikethrough Whether to apply strikethrough
+     */
+    fun setStrikethrough(strikethrough: Boolean) {
+        currentTextRun?.isStrikethrough = strikethrough
+    }
+
+    /**
+     * Sets whether the current text run is underlined.
+     *
+     * @param underline Whether to apply underline
+     */
+    fun setUnderline(underline: Boolean) {
+        currentTextRun?.isUnderlined = underline
+    }
+
+    /**
+     * Sets whether the current text run is superscript.
+     *
+     * @param superScript Whether to apply superscript
+     */
+    fun setSuperScript(superScript: Boolean) {
+        currentTextRun?.isSuperscript = superScript
+    }
+
+    /**
+     * Sets whether the current text run is subscript.
+     *
+     * @param subScript Whether to apply subscript
+     */
+    fun setSubScript(subScript: Boolean) {
+        currentTextRun?.isSubscript = subScript
+    }
+
+    /**
+     * Sets whether the current text run is bold.
+     *
+     * @param bold Whether to apply bold
+     */
+    fun setBold(bold: Boolean) {
+        currentTextRun?.isBold = bold
+    }
+
+    /**
+     * Sets whether the current text run is italic.
+     *
+     * @param italic Whether to apply italic
+     */
+    fun setItalic(italic: Boolean) {
+        currentTextRun?.isItalic = italic
     }
 }
