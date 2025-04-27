@@ -1,0 +1,29 @@
+set dir .
+new slideshow templates/template-simple.pptx
+
+// Contains the following slide templates:
+// 0 - Photo - 3 Up
+// 1 - Title, Bullets & Live Video Large
+// 2 - Blank
+// 3 - Title Only
+// 4 - Photo
+// 5 - Section
+// 6 - Title
+// 7 - Agenda
+// 8 - Title & Photo
+// 9 - Quote
+// 10 - Title & Photo Alt
+// 11 - Title & Bullets
+// 12 - Statement
+// 13 - Title, Bullets & Photo
+// 14 - Big Fact
+// 15 - Title, Bullets & Live Video Small
+// 16 - Bullets
+
+// Title Slide
+set layout 6
+new slide "Lorem Ipsum"
+list slide-details
+
+
+
