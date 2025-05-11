@@ -20,16 +20,39 @@ delete slide 1
 // 15 - Title, Bullets & Live Video Small
 // 16 - Bullets
 
-// Title Slide
+set layout 0
+new slide
+set layout 1
+new slide
+set layout 2
+new slide
+set layout 3
+new slide
+set layout 4
+new slide
+set layout 5
+new slide
 set layout 6
-new slide "Lorem Ipsum"
-set text-box 11
-clear current text-box
-new paragraph "Cicero, 1 AD"
-set text-box 13
-clear current text-box
-new paragraph "Dolor sit amet, consectetur adipiscing elit."
-list slide-details
-
-
-
+new slide
+set layout 7
+new slide
+set layout 8
+new slide
+set layout 9
+new slide
+set layout 10
+new slide
+set layout 11
+new slide
+set layout 12
+new slide
+set layout 13
+new slide
+set layout 14
+new slide
+set layout 15
+new slide
+set layout 16
+new slide
+set dir ./docs
+write images template

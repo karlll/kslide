@@ -35,4 +35,12 @@ class DeleteCommands(
         slideShowService.deleteActiveParagraph()
         println("Deleted the current paragraph")
     }
+
+    @Command(command = ["property"], group = "Delete", description = "Delete a property")
+    fun deleteProperty(
+        @Option(description = "property name", required = true) propertyName: String,
+    ) {
+        slideShowService.unsetProperty(propertyName)
+        println("Deleted property '$propertyName'")
+    }
 }

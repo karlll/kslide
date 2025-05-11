@@ -124,4 +124,29 @@ class ListCommands(
             }
         }
     }
+
+    @Command(command = ["properties"], group = "List", description = "List all properties")
+    fun listProperties() {
+        val properties = slideShowService.getProperties()
+        if (properties.isEmpty()) {
+            println("No properties found.")
+        } else {
+            println("Properties:")
+            properties.forEach { (key, value) ->
+                println("- $key: $value")
+            }
+        }
+    }
+
+    @Command(command = ["property"], group = "List", description = "List a property")
+    fun listProperty(
+        @Option(description = "property name", required = true) propertyName: String,
+    ) {
+        val property = slideShowService.getProperty(propertyName)
+        if (property == null) {
+            println("Property '$propertyName' not found.")
+        } else {
+            println("Property '$propertyName': $property")
+        }
+    }
 }

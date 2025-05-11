@@ -65,7 +65,21 @@ class NewCommands(
         val textBox = slideShowService.getActiveTextBox()
 
         println(
-            "Created new paragraph (id=${textBox.shapeId},text=$text) in text box (#${textBox.shapeId}) of slide (#${currentSlide.slideNumber}) of slideshow with id $slideShowId. ",
+            "Created new paragraph (text=$text) in text box (#${textBox.shapeId}) of slide (#${currentSlide.slideNumber}) of slideshow with id $slideShowId. ",
+        )
+    }
+
+    @Command(command = ["text-run"], group = "New", description = "Create a new text run the active paragraph")
+    fun newTextRun(
+        @Option(description = "text", required = true) text: String,
+    ) {
+        val slideShowId = slideShowService.getActiveSlideShowId()
+        val currentSlide = slideShowService.getActiveSlide()
+        slideShowService.addTextRunInActiveParagraph(text)
+        val textBox = slideShowService.getActiveTextBox()
+
+        println(
+            "Created new text run (text=$text) in text box (#${textBox.shapeId}) of slide (#${currentSlide.slideNumber}) of slideshow with id $slideShowId. ",
         )
     }
 

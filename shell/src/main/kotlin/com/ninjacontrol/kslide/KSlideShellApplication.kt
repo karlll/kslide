@@ -8,7 +8,14 @@ import org.springframework.boot.runApplication
 import org.springframework.shell.command.annotation.EnableCommand
 
 @SpringBootApplication
-@EnableCommand(NewCommands::class, ListCommands::class, SetCommands::class, WriteCommands::class, DeleteCommands::class)
+@EnableCommand(
+    NewCommands::class,
+    ListCommands::class,
+    SetCommands::class,
+    WriteCommands::class,
+    DeleteCommands::class,
+    ClearCommands::class,
+)
 class KSlideShellApplication
 
 fun main(args: Array<String>) {

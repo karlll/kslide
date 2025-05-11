@@ -171,11 +171,34 @@ class SlideShowState {
         }
     }
 
+    fun clearTextBox() {
+        currentTextBox?.clearText()
+    }
+
+    fun clearTextBox(id: Int) {
+        val textBoxToClear = currentSlide?.placeholders?.find { it.shapeId == id }
+        if (textBoxToClear != null) {
+            textBoxToClear.clearText()
+        } else {
+            throw IllegalArgumentException("Text box with ID $id not found")
+        }
+    }
+
     /**
      * Creates a new text paragraph in the current text box.
      */
     fun newTextParagraph() {
         currentTextParagraph = currentTextBox?.addNewTextParagraph()
+    }
+
+    /**
+     * Sets the text for the current text paragraph.
+     * Overwrites any existing text runs in the paragraph.
+     */
+    fun setTextInParagraph(text: String) {
+        currentTextParagraph?.textRuns?.clear() // clear all existing text runs
+        currentTextRun = currentTextParagraph?.addNewTextRun()
+        currentTextRun?.setText(text)
     }
 
     fun deleteCurrentTextParagraph() {
@@ -188,7 +211,7 @@ class SlideShowState {
      *
      * @param text The text to add
      */
-    fun newTextRun(text: String) {
+    fun addTextInParagraph(text: String) {
         currentTextRun = currentTextParagraph?.addNewTextRun()
         currentTextRun?.setText(text)
     }

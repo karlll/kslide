@@ -69,4 +69,16 @@ class WriteCommands(
         slideShowService.renderSlideToImage(slideNumber, file)
         println("Exported slide #$slideNumber to $filePath")
     }
+
+    @Command(command = ["images"], group = "Write", description = "Render all slides to images")
+    fun writeImages(
+        @Option(description = "prefix", required = true) prefix: String,
+    ) {
+        // Get the active directory from the service
+        val activeDirectory = slideShowService.getActiveDirectory()
+
+        // write the current slideshow to a file
+        slideShowService.renderSlidesToImages(activeDirectory.toString(), prefix)
+        println("Exported all slides to $activeDirectory")
+    }
 }

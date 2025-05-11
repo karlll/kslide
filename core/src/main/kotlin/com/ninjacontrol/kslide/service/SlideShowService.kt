@@ -11,6 +11,7 @@ import org.apache.poi.xslf.usermodel.XSLFSlideLayout
 import org.apache.poi.xslf.usermodel.XSLFTextBox
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.nio.file.Paths
 import java.util.UUID
 
 interface SlideShowService {
@@ -123,7 +124,7 @@ interface SlideShowService {
 
     fun createParagraph(text: String?)
 
-    fun addTextRun(text: String)
+    fun addTextRunInActiveParagraph(text: String)
 
     fun addBullet(
         level: Int,
@@ -133,6 +134,8 @@ interface SlideShowService {
     fun getActiveTextBox(): XSLFTextBox
 
     fun setActiveTextBox(id: Int)
+
+    fun setTextRunInActiveParagraph(text: String)
 
     /**
      * Removes the specified slideshow from the repository.
@@ -192,12 +195,32 @@ interface SlideShowService {
 
     fun deleteTextBox(id: Int)
 
+    fun clearActiveTextBox()
+
+    fun clearTextBox(id: Int)
+
     fun deleteActiveParagraph()
 
     fun renderSlideToImage(
         slideNumber: Int,
         outputFile: java.io.File,
     )
+
+    fun renderSlidesToImages(
+        outputPath: String,
+        outputFilePrefix: String,
+    )
+
+    fun setProperty(
+        key: String,
+        value: String,
+    )
+
+    fun unsetProperty(key: String)
+
+    fun getProperty(key: String): String?
+
+    fun getProperties(): Map<String, String>
 }
 
 class SlideShowServiceImpl(
@@ -206,6 +229,7 @@ class SlideShowServiceImpl(
     // Cache for the active slideshow state
     private var activeSlideShowState: SlideShowState? = null
     private var activeDirectory: String? = null
+    private val properties = HashMap<String, String>()
 
     override fun getActiveSlideShow(): XMLSlideShow = activeSlideShowState?.ppt ?: throw IllegalStateException("No active slideshow exists")
 
@@ -332,6 +356,22 @@ class SlideShowServiceImpl(
         slideShowRepository.add(state)
     }
 
+    override fun clearActiveTextBox() {
+        val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
+        state.clearTextBox()
+
+        // Save the updated state
+        slideShowRepository.add(state)
+    }
+
+    override fun clearTextBox(id: Int) {
+        val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
+        state.clearTextBox(id)
+
+        // Save the updated state
+        slideShowRepository.add(state)
+    }
+
     override fun deleteActiveTextBox() {
         val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
         state.deleteTextBox(getActiveTextBox().shapeId)
@@ -349,7 +389,7 @@ class SlideShowServiceImpl(
         val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
         state.newTextParagraph()
         if (!text.isNullOrBlank()) {
-            state.newTextRun(text)
+            state.addTextInParagraph(text)
         }
     }
 
@@ -361,9 +401,14 @@ class SlideShowServiceImpl(
         slideShowRepository.add(state)
     }
 
-    override fun addTextRun(text: String) {
+    override fun addTextRunInActiveParagraph(text: String) {
         val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
-        state.newTextRun(text)
+        state.addTextInParagraph(text)
+    }
+
+    override fun setTextRunInActiveParagraph(text: String) {
+        val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
+        state.setTextInParagraph(text)
     }
 
     override fun addBullet(
@@ -372,7 +417,7 @@ class SlideShowServiceImpl(
     ) {
         val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
         state.newTextParagraph()
-        state.newTextRun(text)
+        state.addTextInParagraph(text)
         state.setBullet(true)
         state.setIndentLevel(level)
     }
@@ -425,4 +470,30 @@ class SlideShowServiceImpl(
         val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
         RenderSlide.renderSlideToPNG(state.ppt, slideNumber, outputFile)
     }
+
+    override fun renderSlidesToImages(
+        outputPath: String,
+        outputFilePrefix: String,
+    ) {
+        val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
+        for (i in 0 until state.ppt.slides.size) {
+            val outputFile = java.io.File(Paths.get(outputPath, "$outputFilePrefix-slide-$i.png").toString())
+            RenderSlide.renderSlideToPNG(state.ppt, i, outputFile)
+        }
+    }
+
+    override fun setProperty(
+        key: String,
+        value: String,
+    ) {
+        properties[key] = value
+    }
+
+    override fun unsetProperty(key: String) {
+        properties.remove(key)
+    }
+
+    override fun getProperty(key: String): String? = properties[key]
+
+    override fun getProperties(): Map<String, String> = properties
 }
