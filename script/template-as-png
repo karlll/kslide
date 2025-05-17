@@ -1,6 +1,12 @@
 set dir .
 new slideshow templates/template-simple.pptx
 delete slide 1
+
+// activate debug to highlight the placeholders
+set property debug.mode on
+set property debug.flags.placeholder.frame 1
+set property debug.flags.placeholder.id 1
+
 // Contains the following slide templates:
 // 0 - Photo - 3 Up
 // 1 - Title, Bullets & Live Video Large

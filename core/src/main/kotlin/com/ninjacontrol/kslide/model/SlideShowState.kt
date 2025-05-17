@@ -7,6 +7,7 @@ import org.apache.poi.sl.usermodel.AutoNumberingScheme
 import org.apache.poi.sl.usermodel.Placeholder
 import org.apache.poi.sl.usermodel.TextParagraph
 import org.apache.poi.xslf.usermodel.*
+import java.awt.Color
 import java.awt.Rectangle
 import java.io.ByteArrayInputStream
 import java.io.FileInputStream
@@ -75,7 +76,12 @@ class SlideShowState {
      * @param title Optional title for the slide
      * @return The number of the created slide
      */
-    fun newSlide(title: String?): Int {
+    fun newSlide(
+        title: String?,
+        debugFlags: Int = 0,
+    ): Int {
+        val highlightPlaceholders = debugFlags and 0x1 != 0
+        val addPlaceholderId = debugFlags and 0x2 != 0
         currentSlide =
             if (currentLayout == null) {
                 ppt.createSlide()
@@ -83,11 +89,21 @@ class SlideShowState {
                 ppt.createSlide(currentLayout)
             }
 
-        if (!title.isNullOrEmpty() && currentSlide != null) {
+        if (currentSlide != null) {
             for (placeholder in currentSlide!!.placeholders) {
                 if (placeholder is XSLFTextShape) {
-                    if (placeholder.placeholder == Placeholder.TITLE) {
+                    if (!title.isNullOrEmpty() && placeholder.placeholder == Placeholder.TITLE) {
                         placeholder.text = title
+                    }
+
+                    // Apply debug highlighting if enabled
+                    if (highlightPlaceholders) {
+                        placeholder.lineColor = Color.RED
+                        placeholder.lineWidth = 2.0
+                    }
+                    if (addPlaceholderId) {
+                        val text = if (placeholder.placeholder == Placeholder.PICTURE) "Picture" else placeholder.text.trim()
+                        placeholder.text = "$text id=${placeholder.shapeId}"
                     }
                 }
             }

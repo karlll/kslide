@@ -319,7 +319,15 @@ class SlideShowServiceImpl(
 
     override fun createSlide(title: String?): Int {
         val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
-        val slideNumber = state.newSlide(title)
+        val debugFlags =
+            if (getProperty(Property.DEBUG_MODE.key) == DebugMode.ON.key) {
+                val frame = if (getProperty(Property.DEBUG_FLAG_PLACEHOLDER_FRAME.key) != null) 1 else 0
+                val id = if (getProperty(Property.DEBUG_FLAG_PLACEHOLDER_ID.key) != null) 1 else 0
+                (id shl 1) + frame
+            } else {
+                0
+            }
+        val slideNumber = state.newSlide(title, debugFlags)
 
         // Save the updated state
         slideShowRepository.add(state)
