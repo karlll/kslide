@@ -1,5 +1,6 @@
 package com.ninjacontrol.kslide.command
 
+import com.ninjacontrol.kslide.output.Output
 import com.ninjacontrol.kslide.service.SlideShowService
 import org.springframework.shell.command.annotation.Command
 import org.springframework.shell.command.annotation.Option
@@ -8,6 +9,7 @@ import java.nio.file.Paths
 @Command(command = ["load"], group = "Load", description = "Load from file ...")
 class LoadCommands(
     private val slideShowService: SlideShowService,
+    private val output: Output,
 ) {
     @Command(command = ["file"], group = "Load", description = "Load a slideshow from file")
     fun loadTemplate(
@@ -19,7 +21,7 @@ class LoadCommands(
             if (!activeDirectory.isNullOrEmpty()) {
                 Paths.get(activeDirectory, filename).toString()
             } else {
-                println("Please set the active directory first.")
+                output.out("Please set the active directory first.")
                 return
             }
 
@@ -27,9 +29,9 @@ class LoadCommands(
         val file = java.io.File(filePath)
         if (file.exists()) {
             val id = slideShowService.createSlideShow(filePath)
-            println("Loaded the slideshow from $filePath (id=$id)")
+            output.out("Loaded the slideshow from $filePath (id=$id)")
         } else {
-            println("File $filePath does not exist.")
+            output.out("File $filePath does not exist.")
         }
     }
 }

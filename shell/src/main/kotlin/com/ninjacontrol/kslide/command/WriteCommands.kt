@@ -1,5 +1,6 @@
 package com.ninjacontrol.kslide.command
 
+import com.ninjacontrol.kslide.output.Output
 import com.ninjacontrol.kslide.service.SlideShowService
 import org.springframework.shell.command.annotation.Command
 import org.springframework.shell.command.annotation.Option
@@ -8,6 +9,7 @@ import java.nio.file.Paths
 @Command(command = ["write"], group = "Write", description = "Write to file ...")
 class WriteCommands(
     private val slideShowService: SlideShowService,
+    private val output: Output,
 ) {
     @Command(command = ["file"], group = "Write", description = "Write the current slideshow to a file")
     fun writeFile(
@@ -29,14 +31,14 @@ class WriteCommands(
             if (!activeDirectory.isNullOrEmpty()) {
                 Paths.get(activeDirectory, pptx).toString()
             } else {
-                println("Please set the active directory first.")
+                output.out("Please set the active directory first.")
                 return
             }
 
         // write the current slideshow to a file
         val file = java.io.File(filePath)
         slideShowService.exportActiveSlideShow(filePath)
-        println("Exported the current slideshow to $filePath")
+        output.out("Exported the current slideshow to $filePath")
     }
 
     @Command(command = ["image"], group = "Write", description = "Render a slide to an image")
@@ -60,14 +62,14 @@ class WriteCommands(
             if (!activeDirectory.isNullOrEmpty()) {
                 Paths.get(activeDirectory, png).toString()
             } else {
-                println("Please set the active directory first.")
+                output.out("Please set the active directory first.")
                 return
             }
 
         // write the current slideshow to a file
         val file = java.io.File(filePath)
         slideShowService.renderSlideToImage(slideNumber, file)
-        println("Exported slide #$slideNumber to $filePath")
+        output.out("Exported slide #$slideNumber to $filePath")
     }
 
     @Command(command = ["images"], group = "Write", description = "Render all slides to images")
@@ -79,6 +81,6 @@ class WriteCommands(
 
         // write the current slideshow to a file
         slideShowService.renderSlidesToImages(activeDirectory.toString(), prefix)
-        println("Exported all slides to $activeDirectory")
+        output.out("Exported all slides to $activeDirectory")
     }
 }

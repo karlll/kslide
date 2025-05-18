@@ -1,5 +1,6 @@
 package com.ninjacontrol.kslide.command
 
+import com.ninjacontrol.kslide.output.Output
 import com.ninjacontrol.kslide.service.SlideShowService
 import org.apache.poi.xslf.usermodel.SlideLayout
 import org.apache.poi.xslf.usermodel.XSLFSlideLayout
@@ -9,18 +10,19 @@ import org.springframework.shell.command.annotation.Option
 @Command(command = ["list"], group = "List")
 class ListCommands(
     private val slideShowService: SlideShowService,
+    private val output: Output,
 ) {
     @Command(command = ["slides"], group = "List", description = "List all slides in the current slideshow")
     fun listSlides() {
         val slides = slideShowService.getAllSlides()
         if (slides.isEmpty()) {
-            println("No slides found in the current slideshow.")
+            output.out("No slides found in the current slideshow.")
         } else {
             val activeSlide = slideShowService.getActiveSlideNumber()
-            println("Slides in the current slideshow:")
+            output.out("Slides in the current slideshow:")
             slides.forEach { slide ->
                 val isActive = if (slide.slideNumber == activeSlide) "(active)" else ""
-                println("#${slide.slideNumber} - ${slide.title ?: "<untitled>"} $isActive")
+                output.out("#${slide.slideNumber} - ${slide.title ?: "<untitled>"} $isActive")
             }
         }
     }
@@ -29,16 +31,16 @@ class ListCommands(
     fun listSlideDetails() {
         val slide = slideShowService.getActiveSlide()
         if (slide == null) {
-            println("No active slide found.")
+            output.out("No active slide found.")
             return
         }
-        println("Details of the current slide:")
-        println("Title: ${slide.title ?: "<untitled>"}")
-        println("Slide number: ${slide.slideNumber}")
-        println("Placeholders:")
+        output.out("Details of the current slide:")
+        output.out("Title: ${slide.title ?: "<untitled>"}")
+        output.out("Slide number: ${slide.slideNumber}")
+        output.out("Placeholders:")
         slide.placeholders.forEach { placeholder ->
             if (placeholder.isPlaceholder) {
-                println(
+                output.out(
                     "-  id: ${placeholder.shapeId}, type: ${placeholder.placeholder}, text: \"${placeholder.text}\", anchor: (x=${placeholder.anchor.x}, y=${placeholder.anchor.y}, w=${placeholder.anchor.width}, h=${placeholder.anchor.height})",
                 )
             }
@@ -53,11 +55,11 @@ class ListCommands(
     fun listLayouts() {
         val layouts = SlideLayout.values()
         if (layouts.isEmpty()) {
-            println("No layouts found.")
+            output.out("No layouts found.")
         } else {
-            println("All valid layouts:")
+            output.out("All valid layouts:")
             layouts.forEach { layout ->
-                println("- ${layout.name}")
+                output.out("- ${layout.name}")
             }
         }
     }
@@ -68,7 +70,7 @@ class ListCommands(
         for ((i, item) in layouts.withIndex()) {
             val layout = item.second
             val masterIndex = item.first
-            println("$i - ${layout.name} (type=${layout.type}, masterIndex=$masterIndex)")
+            output.out("$i - ${layout.name} (type=${layout.type}, masterIndex=$masterIndex)")
         }
     }
 
@@ -78,7 +80,7 @@ class ListCommands(
     ) {
         val layouts = slideShowService.getAvailableLayouts()
         if (layoutIndex < 0 || layoutIndex >= layouts.size) {
-            println("Invalid layout index. Please choose a valid index.")
+            output.out("Invalid layout index. Please choose a valid index.")
             return
         }
         val selectedLayout = layouts[layoutIndex].second
@@ -89,15 +91,15 @@ class ListCommands(
     fun listAllLayoutDetails() {
         val layouts = slideShowService.getAvailableLayouts()
         if (layouts.isEmpty()) {
-            println("No layouts found.")
+            output.out("No layouts found.")
             return
         }
-        println("Layout details:")
-        println("-----------------------------")
+        output.out("Layout details:")
+        output.out("-----------------------------")
         layouts.forEachIndexed { index, item ->
             val layout = item.second
             printLayoutDetails(layout, index, long = false)
-            println("-----------------------------")
+            output.out("-----------------------------")
         }
     }
 
@@ -106,19 +108,19 @@ class ListCommands(
         index: Int,
         long: Boolean = false,
     ) {
-        println("Layout name: ${layout.name} (index=$index)")
+        output.out("Layout name: ${layout.name} (index=$index)")
         if (long) {
-            println("Layout type: ${layout.type}")
+            output.out("Layout type: ${layout.type}")
         }
 
-        println("Placeholders:")
+        output.out("Placeholders:")
         layout.placeholders.forEach { placeholder ->
             if (long) {
-                println(
+                output.out(
                     "- id: ${placeholder.shapeId}, type: ${placeholder.placeholder}, text: \"${placeholder.text}\", anchor: (x=${placeholder.anchor.x}, y=${placeholder.anchor.y}, w=${placeholder.anchor.width}, h=${placeholder.anchor.height})",
                 )
             } else {
-                println(
+                output.out(
                     "- id: ${placeholder.shapeId}, type: ${placeholder.placeholder}",
                 )
             }
@@ -129,11 +131,11 @@ class ListCommands(
     fun listProperties() {
         val properties = slideShowService.getProperties()
         if (properties.isEmpty()) {
-            println("No properties found.")
+            output.out("No properties found.")
         } else {
-            println("Properties:")
+            output.out("Properties:")
             properties.forEach { (key, value) ->
-                println("- $key: $value")
+                output.out("- $key: $value")
             }
         }
     }
@@ -144,9 +146,9 @@ class ListCommands(
     ) {
         val property = slideShowService.getProperty(propertyName)
         if (property == null) {
-            println("Property '$propertyName' not found.")
+            output.out("Property '$propertyName' not found.")
         } else {
-            println("Property '$propertyName': $property")
+            output.out("Property '$propertyName': $property")
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.ninjacontrol.kslide.command
 
+import com.ninjacontrol.kslide.output.Output
 import com.ninjacontrol.kslide.service.SlideShowService
 import org.springframework.shell.command.annotation.Command
 import org.springframework.shell.command.annotation.Option
@@ -8,6 +9,7 @@ import java.nio.file.Paths
 @Command(command = ["new"], alias = ["n"], group = "New", description = "Create a new ...")
 class NewCommands(
     private val slideShowService: SlideShowService,
+    private val output: Output,
 ) {
     @Command(command = ["slideshow"], group = "New", description = "Create a new slideshow")
     fun newSlideshow(
@@ -15,15 +17,15 @@ class NewCommands(
     ) {
         if (template.isNullOrEmpty()) {
             val id = slideShowService.createSlideShow()
-            println("Created new slideshow with id $id")
+            output.out("Created new slideshow with id $id")
         } else {
             val directory = slideShowService.getActiveDirectory()
             if (directory.isNullOrEmpty()) {
-                println("Please set the active directory first when loading a template.")
+                output.out("Please set the active directory first when loading a template.")
             } else {
                 val templateFile = Paths.get(directory, template).toString()
                 slideShowService.createSlideShow(templateFile)
-                println("Creating a new slideshow using template $template.")
+                output.out("Creating a new slideshow using template $template.")
             }
         }
     }
@@ -33,7 +35,7 @@ class NewCommands(
         @Option(description = "title", required = false) title: String?,
     ) {
         val slideNumber = slideShowService.createSlide(title)
-        println(
+        output.out(
             "Created new slide (id=$slideNumber) in slideshow with id ${slideShowService.getActiveSlideShowId()}. ",
         )
     }
@@ -50,7 +52,7 @@ class NewCommands(
         slideShowService.createTextBox(x, y, width, height)
         val textBox = slideShowService.getActiveTextBox()
 
-        println(
+        output.out(
             "Created new text box (id=${textBox.shapeId},x=$x,y=$y,w=$width,h=$height) in slide (#${currentSlide.slideNumber}) of slideshow with id $slideShowId. ",
         )
     }
@@ -64,7 +66,7 @@ class NewCommands(
         slideShowService.createParagraph(text)
         val textBox = slideShowService.getActiveTextBox()
 
-        println(
+        output.out(
             "Created new paragraph (text=$text) in text box (#${textBox.shapeId}) of slide (#${currentSlide.slideNumber}) of slideshow with id $slideShowId. ",
         )
     }
@@ -78,7 +80,7 @@ class NewCommands(
         slideShowService.addTextRunInActiveParagraph(text)
         val textBox = slideShowService.getActiveTextBox()
 
-        println(
+        output.out(
             "Created new text run (text=$text) in text box (#${textBox.shapeId}) of slide (#${currentSlide.slideNumber}) of slideshow with id $slideShowId. ",
         )
     }
@@ -93,7 +95,7 @@ class NewCommands(
         slideShowService.addBullet(level, text)
         val textBox = slideShowService.getActiveTextBox()
 
-        println(
+        output.out(
             "Created new bullet (id=${textBox.shapeId},text=$text) in text box (#${textBox.shapeId}) of slide (#${currentSlide.slideNumber}) of slideshow with id $slideShowId. ",
         )
     }
