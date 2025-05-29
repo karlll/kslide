@@ -1,0 +1,87 @@
+[
+  {
+    "index": 0,
+    "name": "Photo - 3 Up",
+    "description": "Three overlapping picture frames occupy the slide: a large left-side image (id 146), a full-height right-side image (id 145) and a smaller top-right image (id 144). A slide-number placeholder (id 147) is centered at the footer."
+  },
+  {
+    "index": 1,
+    "name": "Title, Bullets & Live Video Large",
+    "description": "A title placeholder spans the top (id 83), followed by a subtitle textbox immediately below (id 81). The main body area for bulleted text fills the remainder of the slide (id 82). A slide-number placeholder (id 84) is centered at the footer."
+  },
+  {
+    "index": 2,
+    "name": "Blank",
+    "description": "No content placeholders apart from a slide-number placeholder centered at the footer (id 162)."
+  },
+  {
+    "index": 3,
+    "name": "Title Only",
+    "description": "A full-width title placeholder occupies the top (id 99), with a subtitle/body textbox directly beneath it (id 100). A slide-number placeholder (id 101) is centered at the footer."
+  },
+  {
+    "index": 4,
+    "name": "Photo",
+    "description": "A full-slide picture placeholder serves as a background image (id 154). A slide-number placeholder (id 155) is centered at the footer."
+  },
+  {
+    "index": 5,
+    "name": "Section",
+    "description": "A large, full-width section title placeholder is centered vertically (id 91). A slide-number placeholder (id 92) is centered at the footer."
+  },
+  {
+    "index": 6,
+    "name": "Title",
+    "description": "A presentation title placeholder dominates the upper half (id 12), with a subtitle/body textbox beneath (id 13). Author-and-date text appears near the bottom (id 11). A slide-number placeholder (id 14) is centered at the footer."
+  },
+  {
+    "index": 7,
+    "name": "Agenda",
+    "description": "A full-width title placeholder at the top (id 108) is followed by a subtitle textbox below (id 109). The main body area for agenda topics fills the remainder (id 110). A slide-number placeholder (id 111) is centered at the footer."
+  },
+  {
+    "index": 8,
+    "name": "Title & Photo",
+    "description": "A full-slide image placeholder forms the background (id 21). Author-and-date text appears at top-left (id 23), a title placeholder sits mid-slide (id 22), and a subtitle/body textbox lies near the bottom (id 24). A slide-number placeholder (id 25) is centered at the footer."
+  },
+  {
+    "index": 9,
+    "name": "Quote",
+    "description": "A large quotation textbox occupies the central area (id 136). Attribution text appears just above the footer (id 135). A slide-number placeholder (id 137) is centered at the footer."
+  },
+  {
+    "index": 10,
+    "name": "Title & Photo Alt",
+    "description": "A picture placeholder covers the right half (id 32). On the left, a title placeholder sits at the top (id 33) and a subtitle/body textbox beneath (id 34). A slide-number placeholder (id 35) is centered at the footer."
+  },
+  {
+    "index": 11,
+    "name": "Title & Bullets",
+    "description": "A full-width title placeholder at the top (id 42) is followed by a subtitle textbox (id 43). Bulleted text fills the remainder of the slide (id 44). A slide-number placeholder (id 45) is centered at the footer."
+  },
+  {
+    "index": 12,
+    "name": "Statement",
+    "description": "A centered body-text placeholder for a statement occupies the main area (id 118). A slide-number placeholder (id 119) is centered at the footer."
+  },
+  {
+    "index": 13,
+    "name": "Title, Bullets & Photo",
+    "description": "On the left, a title placeholder sits at the top (id 63), a subtitle textbox beneath (id 60), and bulleted text below that (id 61). A large image placeholder fills the right half (id 62). A slide-number placeholder (id 64) is centered at the footer."
+  },
+  {
+    "index": 14,
+    "name": "Big Fact",
+    "description": "A prominent fact-number textbox dominates the upper portion (id 126). Explanatory text appears just below (id 127). A slide-number placeholder (id 128) is centered at the footer."
+  },
+  {
+    "index": 15,
+    "name": "Title, Bullets & Live Video Small",
+    "description": "A title placeholder occupies the top (id 73), followed by a subtitle textbox (id 71) and bulleted text below (id 72). A slide-number placeholder (id 74) is centered at the footer."
+  },
+  {
+    "index": 16,
+    "name": "Bullets",
+    "description": "A full-slide bulleted-text placeholder fills the slide (id 52). A slide-number placeholder (id 53) is centered at the footer."
+  }
+]

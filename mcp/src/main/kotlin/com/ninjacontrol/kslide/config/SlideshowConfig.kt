@@ -8,15 +8,10 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @Configuration
-class McpConfig {
-    
+class SlideshowConfig {
     @Bean
-    fun slideShowRepository(): SlideShowRepository {
-        return SlideShowRepositoryMap()
-    }
-    
+    fun slideShowRepository(): SlideShowRepository = SlideShowRepositoryMap()
+
     @Bean
-    fun slideShowService(slideShowRepository: SlideShowRepository): SlideShowService {
-        return SlideShowServiceImpl(slideShowRepository)
-    }
+    fun slideShowService(slideShowRepository: SlideShowRepository): SlideShowService = SlideShowServiceImpl(slideShowRepository)
 }

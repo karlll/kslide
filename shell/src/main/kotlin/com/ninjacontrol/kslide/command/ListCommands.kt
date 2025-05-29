@@ -2,6 +2,7 @@ package com.ninjacontrol.kslide.command
 
 import com.ninjacontrol.kslide.output.Output
 import com.ninjacontrol.kslide.service.SlideShowService
+import org.apache.poi.sl.usermodel.Placeholder
 import org.apache.poi.xslf.usermodel.SlideLayout
 import org.apache.poi.xslf.usermodel.XSLFSlideLayout
 import org.springframework.shell.command.annotation.Command
@@ -88,7 +89,9 @@ class ListCommands(
     }
 
     @Command(command = ["all-layout-details"], group = "List", description = "List details of all layouts")
-    fun listAllLayoutDetails() {
+    fun listAllLayoutDetails(
+        @Option(description = "long description", defaultValue = "false") long: Boolean,
+    ) {
         val layouts = slideShowService.getAvailableLayouts()
         if (layouts.isEmpty()) {
             output.out("No layouts found.")
@@ -98,7 +101,7 @@ class ListCommands(
         output.out("-----------------------------")
         layouts.forEachIndexed { index, item ->
             val layout = item.second
-            printLayoutDetails(layout, index, long = false)
+            printLayoutDetails(layout, index, long)
             output.out("-----------------------------")
         }
     }
@@ -108,7 +111,7 @@ class ListCommands(
         index: Int,
         long: Boolean = false,
     ) {
-        output.out("Layout name: ${layout.name} (index=$index)")
+        output.out("Layout name: \"${layout.name}\" (index=$index)")
         if (long) {
             output.out("Layout type: ${layout.type}")
         }
@@ -116,8 +119,16 @@ class ListCommands(
         output.out("Placeholders:")
         layout.placeholders.forEach { placeholder ->
             if (long) {
+                val text =
+                    if (placeholder.placeholder == Placeholder.PICTURE ||
+                        placeholder.placeholder == Placeholder.SLIDE_NUMBER
+                    ) {
+                        ","
+                    } else {
+                        ", placeholder text: \"${placeholder.text.trim()}\","
+                    }
                 output.out(
-                    "- id: ${placeholder.shapeId}, type: ${placeholder.placeholder}, text: \"${placeholder.text}\", anchor: (x=${placeholder.anchor.x}, y=${placeholder.anchor.y}, w=${placeholder.anchor.width}, h=${placeholder.anchor.height})",
+                    "- id: ${placeholder.shapeId}, type: ${placeholder.placeholder}$text anchor: (x=${placeholder.anchor.x}, y=${placeholder.anchor.y}, w=${placeholder.anchor.width}, h=${placeholder.anchor.height})",
                 )
             } else {
                 output.out(
