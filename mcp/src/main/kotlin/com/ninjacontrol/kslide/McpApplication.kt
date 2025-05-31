@@ -51,7 +51,14 @@ fun main(args: Array<String>) {
     val templates = loadTemplates(Path.of(templatePath))
     val layouts = loadLayouts(Path.of(templatePath), templates)
 
-    runApplication<McpApplication>(*args)
+    runApplication<McpApplication>(*args) {
+        addInitializers(
+            org.springframework.context.support.beans {
+                bean("templates") { templates }
+                bean("layouts") { layouts }
+            },
+        )
+    }
 }
 
 fun parseArgs(args: Array<String>): Map<String, String> =
