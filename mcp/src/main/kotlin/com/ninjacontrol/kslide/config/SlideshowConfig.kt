@@ -1,11 +1,18 @@
 package com.ninjacontrol.kslide.config
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import com.ninjacontrol.kslide.mcp.model.Layouts
+import com.ninjacontrol.kslide.mcp.model.Templates
 import com.ninjacontrol.kslide.repository.SlideShowRepository
 import com.ninjacontrol.kslide.repository.SlideShowRepositoryMap
 import com.ninjacontrol.kslide.service.SlideShowService
 import com.ninjacontrol.kslide.service.SlideShowServiceImpl
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import java.nio.file.Path
+import kotlin.io.path.inputStream
+import kotlin.io.path.listDirectoryEntries
 
 @Configuration
 class SlideshowConfig {
@@ -14,4 +21,48 @@ class SlideshowConfig {
 
     @Bean
     fun slideShowService(slideShowRepository: SlideShowRepository): SlideShowService = SlideShowServiceImpl(slideShowRepository)
+
+    @Bean
+    fun templates(): Templates {
+        val templatePath = System.getProperty("templatePath") ?: error("Missing --templatePath system property")
+        return loadTemplates(Path.of(templatePath))
+    }
+
+    @Bean
+    fun layouts(templates: Templates): Map<String, Layouts> {
+        val templatePath = System.getProperty("templatePath") ?: error("Missing --templatePath system property")
+        return loadLayouts(Path.of(templatePath), templates)
+    }
+
+    fun loadTemplates(path: Path): Templates {
+        val files = path.listDirectoryEntries()
+        val templateFile =
+            files.find { it.fileName.toString() == "templates.json" }
+                ?: throw IllegalArgumentException("No templates.json file found in $path")
+
+        val objectMapper = jacksonObjectMapper()
+        return templateFile.inputStream().use {
+            objectMapper.readValue(it)
+        }
+    }
+
+    fun loadLayouts(
+        path: Path,
+        templates: Templates,
+    ): Map<String, Layouts> {
+        val objectMapper = jacksonObjectMapper()
+        return templates.associate { template ->
+            val layoutsFile =
+                path
+                    .resolve(template.layoutsFilename)
+                    .takeIf { it.toFile().exists() }
+                    ?: throw IllegalArgumentException("Layouts file ${template.layoutsFilename} not found for template ${template.name}")
+
+            val layouts: Layouts =
+                layoutsFile.inputStream().use {
+                    objectMapper.readValue(it)
+                }
+            template.name to layouts
+        }
+    }
 }

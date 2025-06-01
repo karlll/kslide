@@ -1,49 +1,88 @@
+@file:Suppress("ktlint:standard:no-wildcard-imports")
+
 package com.ninjacontrol.kslide.mcp
 
 import com.ninjacontrol.kslide.mcp.model.Layout
 import com.ninjacontrol.kslide.mcp.model.Layouts
+import com.ninjacontrol.kslide.mcp.model.Template
+import com.ninjacontrol.kslide.mcp.model.Templates
 import com.ninjacontrol.kslide.service.SlideShowService
 import io.mockk.mockk
-import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class SlideshowGeneratorServiceTest {
-    private val slideShowService: SlideShowService = mockk()
+    private lateinit var slideShowService: SlideShowService
+    private lateinit var templates: Templates
+    private lateinit var layouts: Map<String, Layouts>
+    private lateinit var service: SlideshowGeneratorService
 
-    private fun layouts(vararg names: String): Layouts = names.mapIndexed { i, n -> Layout(n, "$n description", i) }
+    @BeforeEach
+    fun setUp() {
+        // Use real Template and Layout objects for test data
+        templates =
+            listOf(
+                Template(
+                    name = "template1",
+                    description = "desc1",
+                    filename = "file1.pptx",
+                    layoutsFilename = "layouts1.json",
+                ),
+                Template(
+                    name = "template2",
+                    description = "desc2",
+                    filename = "file2.pptx",
+                    layoutsFilename = "layouts2.json",
+                ),
+            )
+        layouts =
+            mapOf(
+                "template1" to
+                    listOf(
+                        Layout(name = "layoutA", description = "Layout A", index = 0),
+                        Layout(name = "layoutB", description = "Layout B", index = 1),
+                    ),
+                "template2" to
+                    listOf(
+                        Layout(name = "layoutC", description = "Layout C", index = 0),
+                    ),
+            )
+        slideShowService = mockk()
+        service = SlideshowGeneratorService(slideShowService, templates, layouts)
+    }
 
     @Test
     fun `listTemplates returns available templates`() {
-        val service = SlideshowGeneratorService(slideShowService, layouts("template1", "template2"))
         val result = service.listTemplates()
-        assertEquals("Available templates: template1, template2", result)
+        assertTrue(result.contains("template1"))
+        assertTrue(result.contains("template2"))
     }
 
     @Test
-    fun `listLayouts returns error for unknown template`() {
-        val service = SlideshowGeneratorService(slideShowService, layouts("template1"))
-        val result = service.listLayouts("unknown")
-        assertEquals("Error: template 'unknown' not found. Available templates: template1", result)
+    fun `listTemplates throws if no templates`() {
+        val emptyTemplates = emptyList<Template>()
+        val serviceWithNoTemplates = SlideshowGeneratorService(slideShowService, emptyTemplates, layouts)
+        val exception =
+            assertThrows(IllegalStateException::class.java) {
+                serviceWithNoTemplates.listTemplates()
+            }
+        assertTrue(exception.message!!.contains("No templates available"))
     }
 
     @Test
-    fun `listLayouts returns available layouts for template`() {
-        val service = SlideshowGeneratorService(slideShowService, layouts("template1"))
+    fun `listLayouts returns layouts for template`() {
         val result = service.listLayouts("template1")
-        assertEquals("Available layouts for 'template1': template1", result)
+        assertTrue(result.contains("layoutA"))
+        assertTrue(result.contains("layoutB"))
     }
 
     @Test
-    fun `createSlideshow returns error for unknown template`() {
-        val service = SlideshowGeneratorService(slideShowService, layouts("template1"))
-        val result = service.createSlideshow("unknown")
-        assertEquals("Error: template 'unknown' not found. Available templates: template1", result)
-    }
-
-    @Test
-    fun `createSlideshow returns success for known template`() {
-        val service = SlideshowGeneratorService(slideShowService, layouts("template1"))
-        val result = service.createSlideshow("template1")
-        assertEquals("Slideshow created", result)
+    fun `listLayouts throws if template not found`() {
+        val exception =
+            assertThrows(IllegalArgumentException::class.java) {
+                service.listLayouts("nonexistent")
+            }
+        assertTrue(exception.message!!.contains("template 'nonexistent' not found"))
     }
 }

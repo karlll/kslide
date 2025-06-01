@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "kslide-mcp": {
+      "command": "java",
+      "args": [
+        "-Dspring.ai.mcp.server.stdio=true",
+        "-Dspring.main.web-application-type=none",
+        "-Dlogging.pattern.console=",
+        "-jar",
+        "/Users/karl/Project/kslide/mcp/build/libs/kslide-mcp-0.0.1-SNAPSHOT.jar",
+        "--templatePath=/Users/karl/Project/kslide/templates"
+      ]
+    }
+  }
+}
