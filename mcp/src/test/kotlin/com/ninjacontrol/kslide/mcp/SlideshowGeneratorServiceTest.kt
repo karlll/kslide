@@ -11,12 +11,15 @@ import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.nio.file.Paths
 
 class SlideshowGeneratorServiceTest {
     private lateinit var slideShowService: SlideShowService
     private lateinit var templates: Templates
     private lateinit var layouts: Map<String, Layouts>
     private lateinit var service: SlideshowGeneratorService
+    private lateinit var templatePath: java.nio.file.Path
+    private lateinit var outputPath: java.nio.file.Path
 
     @BeforeEach
     fun setUp() {
@@ -49,7 +52,9 @@ class SlideshowGeneratorServiceTest {
                     ),
             )
         slideShowService = mockk()
-        service = SlideshowGeneratorService(slideShowService, templates, layouts)
+        templatePath = Paths.get("/tmp/template")
+        outputPath = Paths.get("/tmp/output")
+        service = SlideshowGeneratorService(slideShowService, templates, layouts, templatePath, outputPath)
     }
 
     @Test
@@ -62,7 +67,8 @@ class SlideshowGeneratorServiceTest {
     @Test
     fun `listTemplates throws if no templates`() {
         val emptyTemplates = emptyList<Template>()
-        val serviceWithNoTemplates = SlideshowGeneratorService(slideShowService, emptyTemplates, layouts)
+        val serviceWithNoTemplates =
+            SlideshowGeneratorService(slideShowService, emptyTemplates, layouts, templatePath, outputPath)
         val exception =
             assertThrows(IllegalStateException::class.java) {
                 serviceWithNoTemplates.listTemplates()

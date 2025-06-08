@@ -17,7 +17,9 @@ class KSlideMcpApplication {
 fun main(args: Array<String>) {
     val options = parseArgs(args)
     val templatePath = options["templatePath"] ?: error("Missing --templatePath argument")
+    val ouputPath = options["outputPath"] ?: error("Missing --outputPath argument")
     System.setProperty("templatePath", templatePath)
+    System.setProperty("outputPath", ouputPath)
     runApplication<KSlideMcpApplication>(*args)
 }
 

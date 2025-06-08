@@ -8,7 +8,8 @@
         "-Dlogging.pattern.console=",
         "-jar",
         "/Users/karl/Project/kslide/mcp/build/libs/kslide-mcp-0.0.1-SNAPSHOT.jar",
-        "--templatePath=/Users/karl/Project/kslide/templates"
+        "--templatePath=/Users/karl/Project/kslide/templates",
+        "--outputPath=/Users/karl/Project/kslide/output"
       ]
     }
   }

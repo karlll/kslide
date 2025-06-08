@@ -23,15 +23,24 @@ class SlideshowConfig {
     fun slideShowService(slideShowRepository: SlideShowRepository): SlideShowService = SlideShowServiceImpl(slideShowRepository)
 
     @Bean
-    fun templates(): Templates {
+    fun templatePath(): Path {
         val templatePath = System.getProperty("templatePath") ?: error("Missing --templatePath system property")
-        return loadTemplates(Path.of(templatePath))
+        return Path.of(templatePath)
     }
+
+    @Bean
+    fun templates(templatePath: Path): Templates = loadTemplates(templatePath)
 
     @Bean
     fun layouts(templates: Templates): Map<String, Layouts> {
         val templatePath = System.getProperty("templatePath") ?: error("Missing --templatePath system property")
         return loadLayouts(Path.of(templatePath), templates)
+    }
+
+    @Bean
+    fun outputPath(): Path {
+        val outputPath = System.getProperty("outputPath") ?: error("Missing --outputPath system property")
+        return Path.of(outputPath)
     }
 
     fun loadTemplates(path: Path): Templates {

@@ -1,7 +1,7 @@
 [
   {
     "name": "Default",
-    "description": "",
+    "description": "A simple template with 17 different slide layouts.",
     "filename": "template-simple.pptx",
     "layouts-filename": "template-simple-layout.json"
   }
