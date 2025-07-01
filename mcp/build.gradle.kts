@@ -23,7 +23,7 @@ dependencies {
     implementation("org.apache.poi:poi:5.4.0")
     implementation("org.apache.poi:poi-ooxml:5.4.0")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.9.8")
-
+    implementation("com.vladsch.flexmark:flexmark-all:0.64.8")
     // developmentOnly("org.springframework.boot:spring-boot-devtools")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 

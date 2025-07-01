@@ -43,3 +43,6 @@ out/
 ### Application files ###
 kslide.log
 slideshow.db
+
+### Claude Code ###
+CLAUDE.md
