@@ -95,6 +95,12 @@ The MCP server enables AI clients to generate PowerPoint slideshows programmatic
 Using kslide, create a slideshow about dogs with 5 to 10 slides. Select suitable layout for each slide. When done, save the slideshow as "dogs-slideshow-2".
 ```
 
+#### Result
+
+![Slideshow created](docs/examples/dog-slideshow-overview.png)
+
+- Also see [resulting PPTX](docs/examples/dogs-slideshow-2.pptx).
+
 #### Available MCP Tools
 
 **`listTemplates()`**
