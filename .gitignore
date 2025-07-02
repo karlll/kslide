@@ -4,6 +4,9 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
+.DS_Store
+output/
+
 
 ### STS ###
 .apt_generated
@@ -46,3 +49,5 @@ slideshow.db
 
 ### Claude Code ###
 CLAUDE.md
+
+
