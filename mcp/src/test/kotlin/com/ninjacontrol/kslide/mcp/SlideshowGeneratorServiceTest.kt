@@ -7,11 +7,14 @@ import com.ninjacontrol.kslide.mcp.model.Layouts
 import com.ninjacontrol.kslide.mcp.model.Template
 import com.ninjacontrol.kslide.mcp.model.Templates
 import com.ninjacontrol.kslide.service.SlideShowService
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import java.nio.file.Paths
+import java.util.UUID
 
 class SlideshowGeneratorServiceTest {
     private lateinit var slideShowService: SlideShowService
@@ -90,5 +93,49 @@ class SlideshowGeneratorServiceTest {
                 service.listLayouts("nonexistent")
             }
         assertTrue(exception.message!!.contains("template 'nonexistent' not found"))
+    }
+
+    @Test
+    fun `createSlideWithMarkdown should process markdown content correctly`() {
+        val slideshowId = UUID.randomUUID().toString()
+        val layoutIndex = 0
+        val content = mapOf(
+            1 to "This is **bold** text",
+            2 to "- First bullet\n- Second bullet"
+        )
+
+        every { slideShowService.setActiveSlideShow(UUID.fromString(slideshowId)) } returns Unit
+        every { slideShowService.getAvailableLayouts() } returns listOf(0 to mockk())
+        every { slideShowService.setActiveLayout(any()) } returns Unit
+        every { slideShowService.createSlide(null) } returns 1
+        every { slideShowService.addMarkdownContent(any(), any()) } returns Unit
+
+        val result = service.createSlideWithMarkdown(slideshowId, layoutIndex, content)
+
+        verify {
+            slideShowService.setActiveSlideShow(UUID.fromString(slideshowId))
+            slideShowService.createSlide(null)
+            slideShowService.addMarkdownContent(1, "This is **bold** text")
+            slideShowService.addMarkdownContent(2, "- First bullet\n- Second bullet")
+        }
+
+        assertTrue(result.contains("Created slide (#1)"))
+        assertTrue(result.contains("markdown content"))
+    }
+
+    @Test
+    fun `createSlideWithMarkdown should throw exception for invalid layout index`() {
+        val slideshowId = UUID.randomUUID().toString()
+        val invalidLayoutIndex = 999
+        val content = mapOf(1 to "test content")
+
+        every { slideShowService.setActiveSlideShow(UUID.fromString(slideshowId)) } returns Unit
+        every { slideShowService.getAvailableLayouts() } returns listOf(0 to mockk())
+
+        val exception = assertThrows(IllegalArgumentException::class.java) {
+            service.createSlideWithMarkdown(slideshowId, invalidLayoutIndex, content)
+        }
+
+        assertTrue(exception.message!!.contains("Invalid layout index"))
     }
 }

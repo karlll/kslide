@@ -221,6 +221,32 @@ interface SlideShowService {
     fun getProperty(key: String): String?
 
     fun getProperties(): Map<String, String>
+
+    /**
+     * Processes markdown content and adds it to the specified text box placeholder.
+     *
+     * @param placeholderId The ID of the text box placeholder
+     * @param markdownContent The markdown content to process
+     */
+    fun addMarkdownContent(
+        placeholderId: Int,
+        markdownContent: String,
+    )
+
+    /**
+     * Creates formatted text runs with specific styling.
+     *
+     * @param text The text content
+     * @param bold Whether to apply bold formatting
+     * @param italic Whether to apply italic formatting
+     * @param code Whether to apply code formatting (monospace font with background)
+     */
+    fun createFormattedTextRun(
+        text: String,
+        bold: Boolean = false,
+        italic: Boolean = false,
+        code: Boolean = false,
+    )
 }
 
 class SlideShowServiceImpl(
@@ -504,4 +530,53 @@ class SlideShowServiceImpl(
     override fun getProperty(key: String): String? = properties[key]
 
     override fun getProperties(): Map<String, String> = properties
+
+    override fun addMarkdownContent(
+        placeholderId: Int,
+        markdownContent: String,
+    ) {
+        val markdownProcessor = com.ninjacontrol.kslide.util.MarkdownProcessor(this)
+        markdownProcessor.processMarkdownToSlide(placeholderId, markdownContent)
+    }
+
+    override fun createFormattedTextRun(
+        text: String,
+        bold: Boolean,
+        italic: Boolean,
+        code: Boolean,
+    ) {
+        val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
+        
+        // Add text to the current paragraph
+        if (state.currentTextParagraph == null) {
+            createParagraph(null)
+        }
+        
+        state.addTextInParagraph(text)
+        
+        // Apply formatting
+        if (bold) {
+            state.setBold(true)
+        }
+        if (italic) {
+            state.setItalic(true)
+        }
+        if (code) {
+            // Apply code formatting: monospace font with light background
+            state.setFontFamily("Consolas")
+            state.setFontBackgroundColor("#F5F5F5")
+            state.setFontColor("#333333")
+        }
+        
+        // Reset formatting for next text run
+        if (bold || italic || code) {
+            state.setBold(false)
+            state.setItalic(false)
+            if (code) {
+                state.setFontFamily("Arial") // Reset to default font
+                state.setFontBackgroundColor("") // Clear background
+                state.setFontColor("#000000") // Reset to black
+            }
+        }
+    }
 }

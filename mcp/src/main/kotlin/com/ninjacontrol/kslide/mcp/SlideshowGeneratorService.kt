@@ -124,6 +124,31 @@ class SlideshowGeneratorService(
     }
 
     @Tool(
+        description = "Create a new slide with markdown-formatted content. Content can include unordered list (must be prefixed by '-','*' or '+'), **bold**, *italic*, and `inline code`.",
+    )
+    fun createSlideWithMarkdown(
+        @ToolParam(description = "Slideshow identifier") slideshowId: String,
+        @ToolParam(description = "Layout index") layoutIndex: Int,
+        @ToolParam(description = "Slide content with markdown formatting. Map of placeholder IDs to markdown strings.") content:
+            Map<Int, String>,
+    ): String {
+        val objectMapper = jacksonObjectMapper()
+        val contentJson = objectMapper.writeValueAsString(content)
+        slideShowService.setActiveSlideShow(UUID.fromString(slideshowId))
+        val availableLayouts = slideShowService.getAvailableLayouts()
+        if (layoutIndex < 0 || layoutIndex >= availableLayouts.size) {
+            throw IllegalArgumentException("Invalid layout index. Please choose a valid index.")
+        }
+        val selectedLayout = availableLayouts[layoutIndex].second
+        slideShowService.setActiveLayout(selectedLayout)
+
+        val slideNumber = slideShowService.createSlide(null)
+        addMarkdownContentToSlide(content)
+
+        return "Created slide (#$slideNumber) in slideshow '$slideshowId' with layout index $layoutIndex and markdown content: $contentJson\n"
+    }
+
+    @Tool(
         description = "Save the current slideshow to a named file.",
     )
     open fun saveSlideshow(
@@ -151,6 +176,12 @@ class SlideshowGeneratorService(
             slideShowService.setActiveTextBox(placeholderId)
             slideShowService.clearActiveTextBox()
             slideShowService.createParagraph(text)
+        }
+    }
+
+    private fun addMarkdownContentToSlide(content: Map<Int, String>) {
+        content.forEach { (placeholderId, markdownText) ->
+            slideShowService.addMarkdownContent(placeholderId, markdownText)
         }
     }
 }
