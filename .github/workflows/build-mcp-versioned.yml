@@ -1,0 +1,372 @@
+name: Build MCP Server (Versioned)
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    tags:
+      - 'v*'
+    paths:
+      - 'mcp/**'
+      - 'core/**'
+      - 'persistence/**'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'gradle/**'
+      - '.github/workflows/build-mcp-versioned.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'mcp/**'
+      - 'core/**'
+      - 'persistence/**'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'gradle/**'
+      - '.github/workflows/build-mcp-versioned.yml'
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+          - major
+          - custom
+      custom_version:
+        description: 'Custom version (only if release_type is custom)'
+        required: false
+        type: string
+      create_release:
+        description: 'Create GitHub release'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/mcp-server
+
+jobs:
+  determine-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_release: ${{ steps.version.outputs.is_release }}
+      previous_version: ${{ steps.version.outputs.previous_version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          set -e
+          
+          # Function to increment version
+          increment_version() {
+            local version=$1
+            local type=$2
+            
+            # Extract version parts
+            IFS='.' read -ra PARTS <<< "${version}"
+            major=${PARTS[0]}
+            minor=${PARTS[1]}
+            patch=${PARTS[2]}
+            
+            case $type in
+              major)
+                major=$((major + 1))
+                minor=0
+                patch=0
+                ;;
+              minor)
+                minor=$((minor + 1))
+                patch=0
+                ;;
+              patch)
+                patch=$((patch + 1))
+                ;;
+            esac
+            
+            echo "${major}.${minor}.${patch}"
+          }
+          
+          # Function to get the latest git tag
+          get_latest_tag() {
+            git tag -l "v*" | sort -V | tail -1 || echo "v0.0.0"
+          }
+          
+          # Get current branch
+          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/* ]]; then
+            BRANCH="tag"
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BRANCH="${{ github.head_ref }}"
+          else
+            BRANCH="${{ github.ref_name }}"
+          fi
+          
+          echo "Branch: $BRANCH"
+          
+          # Get the latest tag and extract version
+          LATEST_TAG=$(get_latest_tag)
+          echo "Latest tag: $LATEST_TAG"
+          
+          if [[ "$LATEST_TAG" == "v0.0.0" ]]; then
+            PREVIOUS_VERSION="0.0.0"
+          else
+            PREVIOUS_VERSION=${LATEST_TAG#v}
+          fi
+          
+          echo "Previous version: $PREVIOUS_VERSION"
+          
+          IS_RELEASE="false"
+          
+          # Determine version based on context
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # Manual workflow dispatch
+            case "${{ github.event.inputs.release_type }}" in
+              custom)
+                if [[ -n "${{ github.event.inputs.custom_version }}" ]]; then
+                  VERSION="${{ github.event.inputs.custom_version }}"
+                else
+                  echo "Error: Custom version not provided"
+                  exit 1
+                fi
+                ;;
+              patch|minor|major)
+                VERSION=$(increment_version "$PREVIOUS_VERSION" "${{ github.event.inputs.release_type }}")
+                ;;
+              auto)
+                # Auto-detect based on commits since last tag
+                if [[ "$LATEST_TAG" != "v0.0.0" ]]; then
+                  COMMITS=$(git log ${LATEST_TAG}..HEAD --oneline)
+                else
+                  COMMITS=$(git log --oneline)
+                fi
+                
+                if echo "$COMMITS" | grep -E "(BREAKING CHANGE|!:)" > /dev/null; then
+                  VERSION=$(increment_version "$PREVIOUS_VERSION" "major")
+                elif echo "$COMMITS" | grep -E "^feat(\(.*\))?:" > /dev/null; then
+                  VERSION=$(increment_version "$PREVIOUS_VERSION" "minor")
+                elif echo "$COMMITS" | grep -E "^fix(\(.*\))?:" > /dev/null; then
+                  VERSION=$(increment_version "$PREVIOUS_VERSION" "patch")
+                else
+                  VERSION=$(increment_version "$PREVIOUS_VERSION" "patch")
+                fi
+                ;;
+            esac
+            
+            if [[ "${{ github.event.inputs.create_release }}" == "true" ]]; then
+              IS_RELEASE="true"
+            fi
+            
+          elif [[ "$BRANCH" == "tag" ]]; then
+            # Git tag push
+            VERSION=${GITHUB_REF#refs/tags/v}
+            IS_RELEASE="true"
+            
+          elif [[ "$BRANCH" == "main" ]]; then
+            # Main branch - analyze commits since last tag
+            if [[ "$LATEST_TAG" != "v0.0.0" ]]; then
+              COMMITS=$(git log ${LATEST_TAG}..HEAD --oneline)
+            else
+              COMMITS=$(git log --oneline)
+            fi
+            
+            if echo "$COMMITS" | grep -E "(BREAKING CHANGE|!:)" > /dev/null; then
+              VERSION=$(increment_version "$PREVIOUS_VERSION" "major")
+            elif echo "$COMMITS" | grep -E "^feat(\(.*\))?:" > /dev/null; then
+              VERSION=$(increment_version "$PREVIOUS_VERSION" "minor")
+            elif echo "$COMMITS" | grep -E "^fix(\(.*\))?:" > /dev/null; then
+              VERSION=$(increment_version "$PREVIOUS_VERSION" "patch")
+            else
+              VERSION=$(increment_version "$PREVIOUS_VERSION" "patch")
+            fi
+            
+          elif [[ "$BRANCH" == "develop" ]]; then
+            # Develop branch - pre-release version
+            BASE_VERSION=$(increment_version "$PREVIOUS_VERSION" "minor")
+            COMMIT_HASH=$(git rev-parse --short HEAD)
+            VERSION="${BASE_VERSION}-dev.${COMMIT_HASH}"
+            
+          else
+            # Feature branch - branch-based version
+            BASE_VERSION=$(increment_version "$PREVIOUS_VERSION" "patch")
+            BRANCH_SAFE=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]')
+            COMMIT_HASH=$(git rev-parse --short HEAD)
+            VERSION="${BASE_VERSION}-${BRANCH_SAFE}.${COMMIT_HASH}"
+          fi
+          
+          echo "Determined version: $VERSION"
+          echo "Is release: $IS_RELEASE"
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "is_release=$IS_RELEASE" >> $GITHUB_OUTPUT
+          echo "previous_version=$PREVIOUS_VERSION" >> $GITHUB_OUTPUT
+
+  build:
+    needs: determine-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Update version in build files
+        run: |
+          VERSION="${{ needs.determine-version.outputs.version }}"
+          echo "Updating version to: $VERSION"
+          
+          # Update root build.gradle.kts
+          sed -i "s/version = \".*\"/version = \"$VERSION\"/" build.gradle.kts
+          
+          # Update MCP module build.gradle.kts
+          sed -i "s/archiveVersion.set(\".*\")/archiveVersion.set(\"$VERSION\")/" mcp/build.gradle.kts
+
+      - name: Run tests
+        run: ./gradlew test
+
+      - name: Build JAR
+        run: ./gradlew :mcp:bootJar
+
+      - name: Run MCP-specific tests
+        run: ./gradlew :mcp:test
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mcp-test-results-${{ needs.determine-version.outputs.version }}
+          path: |
+            mcp/build/reports/tests/
+            mcp/build/test-results/
+          retention-days: 30
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kslide-mcp-${{ needs.determine-version.outputs.version }}
+          path: mcp/build/libs/kslide-mcp-*.jar
+          retention-days: 90
+
+      - name: Log in to Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        if: github.event_name != 'pull_request'
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ needs.determine-version.outputs.version }}
+            type=raw,value=latest,enable=${{ needs.determine-version.outputs.is_release == 'true' }}
+            type=raw,value=dev,enable=${{ github.ref_name == 'develop' }}
+            type=raw,value=${{ github.ref_name }},enable=${{ github.ref_name != 'main' && github.ref_name != 'develop' && github.event_name != 'workflow_dispatch' }}
+
+      - name: Build and push Docker image
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.mcp
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ needs.determine-version.outputs.version }}
+
+  release:
+    needs: [determine-version, build]
+    runs-on: ubuntu-latest
+    if: needs.determine-version.outputs.is_release == 'true'
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download JAR artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: kslide-mcp-${{ needs.determine-version.outputs.version }}
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION="${{ needs.determine-version.outputs.version }}"
+          PREVIOUS_VERSION="${{ needs.determine-version.outputs.previous_version }}"
+          
+          echo "Generating changelog from $PREVIOUS_VERSION to $VERSION"
+          
+          if [[ "$PREVIOUS_VERSION" != "0.0.0" ]]; then
+            PREVIOUS_TAG="v$PREVIOUS_VERSION"
+            COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+          else
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
+          fi
+          
+          CHANGELOG="## Changes in v$VERSION"$'\n\n'
+          if [[ -n "$COMMITS" ]]; then
+            CHANGELOG+="$COMMITS"
+          else
+            CHANGELOG+="- Initial release"
+          fi
+          
+          echo "Generated changelog:"
+          echo "$CHANGELOG"
+          
+          # Save changelog to file for release
+          echo "$CHANGELOG" > CHANGELOG.md
+          
+          # Set output for release body
+          {
+            echo 'body<<EOF'
+            echo "$CHANGELOG"
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.determine-version.outputs.version }}
+          name: Release v${{ needs.determine-version.outputs.version }}
+          body: ${{ steps.changelog.outputs.body }}
+          files: |
+            kslide-mcp-*.jar
+          draft: false
+          prerelease: ${{ contains(needs.determine-version.outputs.version, '-') }}

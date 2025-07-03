@@ -1,0 +1,48 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Build artifacts
+**/build/
+**/target/
+.gradle/
+gradle-app.setting
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+**/test-results/
+**/reports/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Documentation
+docs/
+README.md
+*.md
+
+# GitHub Actions
+.github/
+
+# Script files
+script/
+
+# Shell module (not needed for MCP)
+shell/
+
+# Docker files
+Dockerfile*
+docker-compose*

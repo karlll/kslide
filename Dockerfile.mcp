@@ -1,0 +1,81 @@
+# Multi-stage build for MCP Server
+FROM gradle:8.13-jdk17-alpine AS builder
+
+ARG VERSION=0.0.1-SNAPSHOT
+
+# Set working directory
+WORKDIR /app
+
+# Copy gradle files first for better caching
+COPY gradle/ gradle/
+COPY gradlew gradlew.bat ./
+COPY build.gradle.kts settings.gradle.kts ./
+
+# Copy source code
+COPY core/ core/
+COPY persistence/ persistence/
+COPY mcp/ mcp/
+
+# Make gradlew executable and build the application
+RUN chmod +x gradlew && \
+    ./gradlew :mcp:bootJar -x test --no-daemon --no-build-cache -Pversion=${VERSION}
+
+# Runtime stage
+FROM eclipse-temurin:17-jre-alpine
+
+ARG VERSION=0.0.1-SNAPSHOT
+
+# Install required packages
+RUN apk add --no-cache \
+    curl \
+    bash \
+    && rm -rf /var/cache/apk/*
+
+# Create app user
+RUN addgroup -g 1001 appuser && \
+    adduser -D -u 1001 -G appuser appuser
+
+# Set working directory
+WORKDIR /app
+
+# Copy JAR from builder stage
+COPY --from=builder /app/mcp/build/libs/kslide-mcp-*.jar app.jar
+
+# Create directories for templates and output
+RUN mkdir -p /app/templates /app/output
+
+# Copy default templates if they exist
+COPY templates/ /app/templates/
+
+# Set ownership
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose port (not typically needed for MCP server as it uses stdio)
+EXPOSE 8080
+
+# Health check (conditional on web mode)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD if [ "$SPRING_MAIN_WEB_APPLICATION_TYPE" != "none" ]; then curl -f http://localhost:8080/actuator/health || exit 1; else exit 0; fi
+
+# Default command
+ENTRYPOINT ["java", \
+    "-Dspring.ai.mcp.server.stdio=true", \
+    "-Dspring.main.web-application-type=none", \
+    "-Dlogging.pattern.console=", \
+    "-jar", \
+    "app.jar"]
+
+# Default arguments
+CMD ["--templatePath=/app/templates", "--outputPath=/app/output"]
+
+# Labels for better image management
+LABEL maintainer="kslide"
+LABEL description="kslide MCP Server - Model Context Protocol server for AI slideshow generation"
+LABEL version="$VERSION"
+LABEL org.opencontainers.image.title="kslide MCP Server"
+LABEL org.opencontainers.image.description="Model Context Protocol server for AI slideshow generation"
+LABEL org.opencontainers.image.source="https://github.com/karlll/kslide"
+LABEL org.opencontainers.image.version="$VERSION"

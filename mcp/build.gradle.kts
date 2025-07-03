@@ -43,5 +43,5 @@ tasks.withType<Test> {
 
 tasks.named<Jar>("bootJar") {
     archiveBaseName.set("kslide-mcp")
-    archiveVersion.set("0.0.1-SNAPSHOT")
+    archiveVersion.set(project.version.toString())
 }
