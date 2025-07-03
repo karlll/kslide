@@ -7,7 +7,7 @@ plugins {
 
 allprojects {
     group = "com.ninjacontrol"
-    version = "0.0.1-SNAPSHOT"
+    version = project.findProperty("version") ?: "0.0.1-SNAPSHOT"
 
     repositories {
         mavenCentral()

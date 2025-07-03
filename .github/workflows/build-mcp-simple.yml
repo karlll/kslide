@@ -1,0 +1,73 @@
+name: Build MCP Server (Simple)
+
+on:
+  push:
+    branches-ignore:
+      - main
+      - develop
+    paths:
+      - 'mcp/**'
+      - 'core/**'
+      - 'persistence/**'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'gradle/**'
+      - '.github/workflows/build-mcp-simple.yml'
+  pull_request:
+    branches:
+      - 'feature/**'
+      - 'fix/**'
+      - 'bugfix/**'
+    paths:
+      - 'mcp/**'
+      - 'core/**'
+      - 'persistence/**'
+      - 'build.gradle.kts'
+      - 'settings.gradle.kts'
+      - 'gradle/**'
+      - '.github/workflows/build-mcp-simple.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          cache-read-only: true
+
+      - name: Run tests
+        run: ./gradlew test
+
+      - name: Build JAR
+        run: ./gradlew :mcp:bootJar
+
+      - name: Run MCP-specific tests
+        run: ./gradlew :mcp:test
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mcp-test-results-${{ github.sha }}
+          path: |
+            mcp/build/reports/tests/
+            mcp/build/test-results/
+          retention-days: 7
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kslide-mcp-dev-${{ github.sha }}
+          path: mcp/build/libs/kslide-mcp-*.jar
+          retention-days: 7
