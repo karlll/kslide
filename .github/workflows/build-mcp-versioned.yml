@@ -77,11 +77,22 @@ jobs:
             local version=$1
             local type=$2
             
-            # Extract version parts
+            # Validate input version string
+            if [[ -z "$version" ]]; then
+              echo "Warning: Empty version string, using 0.0.0 as base" >&2
+              version="0.0.0"
+            fi
+            
+            # Extract version parts with defaults
             IFS='.' read -ra PARTS <<< "${version}"
-            major=${PARTS[0]}
-            minor=${PARTS[1]}
-            patch=${PARTS[2]}
+            major=${PARTS[0]:-0}
+            minor=${PARTS[1]:-0}  
+            patch=${PARTS[2]:-0}
+            
+            # Validate that parts are numeric
+            if ! [[ "$major" =~ ^[0-9]+$ ]]; then major=0; fi
+            if ! [[ "$minor" =~ ^[0-9]+$ ]]; then minor=0; fi
+            if ! [[ "$patch" =~ ^[0-9]+$ ]]; then patch=0; fi
             
             case $type in
               major)
@@ -96,6 +107,10 @@ jobs:
               patch)
                 patch=$((patch + 1))
                 ;;
+              *)
+                echo "Error: Invalid increment type '$type'. Must be major, minor, or patch." >&2
+                return 1
+                ;;
             esac
             
             echo "${major}.${minor}.${patch}"
@@ -103,7 +118,12 @@ jobs:
           
           # Function to get the latest git tag
           get_latest_tag() {
-            git tag -l "v*" | sort -V | tail -1 || echo "v0.0.0"
+            local latest=$(git tag -l "v*" | sort -V | tail -1)
+            if [[ -z "$latest" ]]; then
+              echo "v0.0.0"
+            else
+              echo "$latest"
+            fi
           }
           
           # Get current branch
