@@ -41,7 +41,9 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-tasks.named<Jar>("bootJar") {
-    archiveBaseName.set("kslide-mcp")
-    archiveVersion.set(project.version.toString())
+project.afterEvaluate {
+    tasks.named<Jar>("bootJar") {
+        archiveBaseName.set("kslide-mcp")
+        archiveVersion.set(rootProject.version.toString())
+    }
 }
