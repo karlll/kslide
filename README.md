@@ -187,6 +187,34 @@ The CLI organizes commands into functional groups:
 
 *[To be added]*
 
+## Docker
+
+You can also run the MCP server in a Docker container.
+
+There are two Dockerfiles available:
+
+- `Dockerfile.mcp`, multi-stage build for MCP Server
+- `Dockerfile.mcp.local`, simple runtime-only Dockerfile for pre-built JAR
+
+### Building the Docker Image
+
+To build the Docker image for the MCP server, run:
+
+```bash
+docker build -t kslide-mcp-server -f Dockerfile.mcp .
+```
+
+### Running the Docker Container
+
+To run the MCP server in a Docker container, use:
+
+```bash
+docker run --name kslide-mcp-server -i --rm \
+  -v /path/to/templates:/app/templates \
+  -v /path/to/output:/app/output \
+  kslide-mcp-server
+```
+
 ## License
 
 This project is licensed under the MIT License.
