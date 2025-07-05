@@ -268,7 +268,8 @@ class SlideShowServiceImpl(
         }
 
         // If not in cache, get from repository
-        val slideShowState = slideShowRepository.get(id) ?: throw IllegalArgumentException("SlideShow with id $id not found")
+        val slideShowState =
+            slideShowRepository.get(id) ?: throw IllegalArgumentException("SlideShow with id $id not found")
         activeSlideShowState = slideShowState // Update cache
         return slideShowState.ppt
     }
@@ -280,7 +281,8 @@ class SlideShowServiceImpl(
         }
 
         // Get from repository and update cache
-        val slideShowState = slideShowRepository.get(id) ?: throw IllegalArgumentException("SlideShow with id $id not found")
+        val slideShowState =
+            slideShowRepository.get(id) ?: throw IllegalArgumentException("SlideShow with id $id not found")
         activeSlideShowState = slideShowState
     }
 
@@ -535,7 +537,9 @@ class SlideShowServiceImpl(
         placeholderId: Int,
         markdownContent: String,
     ) {
-        val markdownProcessor = com.ninjacontrol.kslide.util.MarkdownProcessor(this)
+        val markdownProcessor =
+            com.ninjacontrol.kslide.util
+                .MarkdownProcessor(this)
         markdownProcessor.processMarkdownToSlide(placeholderId, markdownContent)
     }
 
@@ -546,15 +550,14 @@ class SlideShowServiceImpl(
         code: Boolean,
     ) {
         val state = activeSlideShowState ?: throw IllegalStateException("No active slideshow")
-        
+
         // Add text to the current paragraph
         if (state.currentTextParagraph == null) {
             createParagraph(null)
         }
-        
-        state.addTextInParagraph(text)
-        
-        // Apply formatting
+
+        state.currentTextRun = state.currentTextParagraph?.addNewTextRun()
+
         if (bold) {
             state.setBold(true)
         }
@@ -562,21 +565,11 @@ class SlideShowServiceImpl(
             state.setItalic(true)
         }
         if (code) {
-            // Apply code formatting: monospace font with light background
             state.setFontFamily("Consolas")
             state.setFontBackgroundColor("#F5F5F5")
             state.setFontColor("#333333")
         }
-        
-        // Reset formatting for next text run
-        if (bold || italic || code) {
-            state.setBold(false)
-            state.setItalic(false)
-            if (code) {
-                state.setFontFamily("Arial") // Reset to default font
-                state.setFontBackgroundColor("") // Clear background
-                state.setFontColor("#000000") // Reset to black
-            }
-        }
+
+        state.currentTextRun?.setText(text)
     }
 }
