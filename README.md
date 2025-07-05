@@ -86,6 +86,28 @@ The MCP server enables AI clients to generate PowerPoint slideshows programmatic
      }
    }
    ```
+   alternatively, use the Docker image as described in the [Docker section](#docker).
+   ```json
+   {
+     "mcpServers": {
+       "kslide-mcp": {
+         "command": "docker",
+         "args": [
+           "run",
+           "--name",
+           "kslide-mcp-server",
+           "-v",
+           "/path/to/kslide/templates:/app/templates",
+           "-v",
+           "/path/to/kslide/output:/app/output",
+           "-i",
+           "--rm",
+           "kslide-mcp-server"
+         ]
+       }
+     }
+   }
+   ```
 
 ### Example Usage
 

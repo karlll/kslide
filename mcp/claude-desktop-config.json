@@ -11,6 +11,21 @@
         "--templatePath=/Users/karl/Project/kslide/templates",
         "--outputPath=/Users/karl/Project/kslide/output"
       ]
+    },
+    "kslide-docker-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--name",
+        "kslide-mcp-server",
+        "-v",
+        "/Users/karl/Project/kslide/templates:/app/templates",
+        "-v",
+        "/Users/karl/Project/kslide/output:/app/output",
+        "-i",
+        "--rm",
+        "kslide-mcp-server"
+      ]
     }
   }
 }
